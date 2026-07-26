@@ -1,0 +1,43 @@
+openapi: 3.0.0
+info:
+  title: Archi Games API
+  version: 1.0.0
+servers:
+  - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
+paths:
+  /health:
+    get:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+      responses:
+        "200":
+          description: Healthy
+  /v1/player/balance:
+    get:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+      responses:
+        "200":
+          description: Player balance
+  /v1/player/sync:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+      responses:
+        "200":
+          description: Synchronized safe client data
+  /v1/vk/payments/callback:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+      responses:
+        "501":
+          description: Adapter is intentionally disabled until VK callback contract is configured

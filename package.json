@@ -1,0 +1,22 @@
+{
+  "name": "archi-games-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Archi Games serverless backend",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "migrate": "node scripts/migrate.js",
+    "build:zip": "node scripts/build-zip.js"
+  },
+  "dependencies": {
+    "@yandex-cloud/nodejs-sdk": "^2.9.3",
+    "ydb-sdk": "^5.11.1"
+  },
+  "devDependencies": {
+    "archiver": "^8.0.0"
+  }
+}
