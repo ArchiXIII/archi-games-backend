@@ -1,0 +1,108 @@
+'use strict';
+
+const { TypedValues } = require('ydb-sdk');
+const { withSession, rows } = require('../ydb');
+const { numberValue } = require('../values');
+
+const COLUMNS = `
+  platform_user_id, player_name, avatar_url, total_stars, total_xp, updated_at
+`;
+
+class LeaderboardRepository {
+  constructor(config) {
+    this.config = config;
+  }
+
+  async sync(gameId, platform, userId, totalStars, totalXp) {
+    return withSession(this.config, async (session) => {
+      const result = await session.executeQuery(`
+        DECLARE $game_id AS Utf8;
+        DECLARE $platform AS Utf8;
+        DECLARE $user_id AS Utf8;
+        DECLARE $total_stars AS Int64;
+        DECLARE $total_xp AS Int64;
+        UPDATE leaderboard_totals SET
+          total_stars = MAX_OF(total_stars, $total_stars),
+          total_xp = MAX_OF(total_xp, $total_xp),
+          updated_at = CurrentUtcTimestamp()
+        WHERE game_id = $game_id AND platform = $platform
+          AND platform_user_id = $user_id;
+        INSERT INTO leaderboard_totals
+          (game_id, platform, platform_user_id, player_name, avatar_url,
+           total_stars, total_xp, updated_at)
+        SELECT $game_id, $platform, $user_id, $user_id, NULL,
+               $total_stars, $total_xp, CurrentUtcTimestamp()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM leaderboard_totals
+          WHERE game_id = $game_id AND platform = $platform
+            AND platform_user_id = $user_id
+        );
+        SELECT ${COLUMNS} FROM leaderboard_totals
+        WHERE game_id = $game_id AND platform = $platform
+          AND platform_user_id = $user_id;
+      `, {
+        $game_id: TypedValues.utf8(gameId),
+        $platform: TypedValues.utf8(platform),
+        $user_id: TypedValues.utf8(userId),
+        $total_stars: TypedValues.int64(totalStars),
+        $total_xp: TypedValues.int64(totalXp)
+      });
+      return rows(result).at(0);
+    });
+  }
+
+  async list(gameId, platform, userId, board, limit, offset) {
+    const scoreColumn = board === 'xp' ? 'total_xp' : 'total_stars';
+    const index = board === 'xp' ? 'idx_leaderboard_xp' : 'idx_leaderboard_stars';
+    return withSession(this.config, async (session) => {
+      const params = {
+        $game_id: TypedValues.utf8(gameId),
+        $platform: TypedValues.utf8(platform),
+        $user_id: TypedValues.utf8(userId),
+        $limit: TypedValues.uint64(limit),
+        $offset: TypedValues.uint64(offset)
+      };
+      const result = await session.executeQuery(`
+        DECLARE $game_id AS Utf8;
+        DECLARE $platform AS Utf8;
+        DECLARE $user_id AS Utf8;
+        DECLARE $limit AS Uint64;
+        DECLARE $offset AS Uint64;
+        SELECT ${COLUMNS}
+        FROM leaderboard_totals VIEW ${index}
+        WHERE game_id = $game_id AND platform = $platform
+        ORDER BY ${scoreColumn} DESC, platform_user_id ASC
+        LIMIT $limit OFFSET $offset;
+        SELECT ${COLUMNS}
+        FROM leaderboard_totals
+        WHERE game_id = $game_id AND platform = $platform
+          AND platform_user_id = $user_id;
+      `, params);
+      const entries = rows(result, 0);
+      const current = rows(result, 1).at(0);
+      let rank = null;
+      if (current) {
+        const rankResult = await session.executeQuery(`
+          DECLARE $game_id AS Utf8;
+          DECLARE $platform AS Utf8;
+          DECLARE $user_id AS Utf8;
+          DECLARE $score AS Int64;
+          SELECT COUNT(*) AS preceding
+          FROM leaderboard_totals VIEW ${index}
+          WHERE game_id = $game_id AND platform = $platform
+            AND (${scoreColumn} > $score OR
+              (${scoreColumn} = $score AND platform_user_id < $user_id));
+        `, {
+          $game_id: params.$game_id,
+          $platform: params.$platform,
+          $user_id: params.$user_id,
+          $score: TypedValues.int64(numberValue(current[scoreColumn]))
+        });
+        rank = numberValue(rows(rankResult).at(0).preceding) + 1;
+      }
+      return { entries, current, rank };
+    });
+  }
+}
+
+module.exports = { LeaderboardRepository };

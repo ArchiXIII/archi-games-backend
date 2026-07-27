@@ -8,13 +8,23 @@ const { PurchaseService } = require('../src/services/purchaseService');
 
 function setup() {
   const orders = new Map();
-  let balance = 0;
   const repository = {
-    async grantPurchase(order) {
-      if (orders.has(order.orderId)) return { granted: false, coins: balance };
+    async createGrant(order) {
+      if (orders.has(order.orderId)) return { created: false, eventId: order.eventId };
       orders.set(order.orderId, order);
-      balance += order.coins;
-      return { granted: true, coins: balance };
+      return { created: true, eventId: order.eventId };
+    },
+    async get(platform, orderId) {
+      const order = orders.get(orderId);
+      return order && order.platform === platform ? {
+        gameId: order.gameId,
+        userId: order.userId,
+        productId: order.productId,
+        status: 'completed'
+      } : null;
+    },
+    async createRefund(refund) {
+      return { created: true, eventId: refund.eventId };
     }
   };
   return {
@@ -44,13 +54,15 @@ test('valid purchase grants catalog coins once', async () => {
     platform: 'vk',
     orderId: 'order-1',
     userId: '123',
-    productId: 'coins_1500',
+    productId: 'coins_25000',
     coins: 999999
   };
   const first = await service.grant(input);
   const second = await service.grant(input);
-  assert.deepEqual(first, { granted: true, coins: 1500 });
-  assert.deepEqual(second, { granted: false, coins: 1500 });
+  assert.equal(first.created, true);
+  assert.equal(second.created, false);
+  assert.equal(first.eventId, second.eventId);
+  assert.match(first.eventId, /^grant_[a-f0-9]{64}$/);
 });
 
 test('client cannot choose coins amount', async () => {
@@ -60,8 +72,24 @@ test('client cannot choose coins amount', async () => {
     platform: 'vk',
     orderId: 'order-2',
     userId: '123',
-    productId: 'coins_500',
+    productId: 'coins_10000',
     coins: 1000000
   });
-  assert.equal(orders.get('order-2').coins, 500);
+  assert.equal(orders.get('order-2').coins, 10000);
+});
+
+test('refund uses the server catalog and deterministic event ID', async () => {
+  const { service, orders } = setup();
+  await service.grant({
+    gameId: 'crystal-match',
+    platform: 'vk',
+    orderId: 'order-3',
+    userId: '123',
+    productId: 'coins_60000'
+  });
+  const first = await service.refund({ platform: 'vk', orderId: 'order-3' });
+  const second = await service.refund({ platform: 'vk', orderId: 'order-3' });
+  assert.equal(orders.get('order-3').coins, 60000);
+  assert.equal(first.eventId, second.eventId);
+  assert.match(first.eventId, /^refund_[a-f0-9]{64}$/);
 });

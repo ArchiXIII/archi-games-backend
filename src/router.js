@@ -5,14 +5,17 @@ const logger = require('./logger');
 const { HttpError, error } = require('./response');
 const { verifyVkLaunchParams } = require('./auth/vkLaunchParams');
 const { healthRoute } = require('./routes/health');
-const { balanceRoute } = require('./routes/balance');
-const { syncRoute } = require('./routes/sync');
+const { syncLeaderboardRoute, leaderboardRoute } = require('./routes/leaderboards');
+const { pendingPurchaseEventsRoute, ackPurchaseEventRoute } = require('./routes/purchaseEvents');
 const { vkPaymentsCallbackRoute } = require('./routes/vkPaymentsCallback');
 
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
-  ['GET /v1/player/balance', { handler: balanceRoute, auth: true }],
-  ['POST /v1/player/sync', { handler: syncRoute, auth: true, json: true }],
+  ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: true, json: true }],
+  ['GET /v1/leaderboards/stars', { handler: leaderboardRoute('stars'), auth: true }],
+  ['GET /v1/leaderboards/xp', { handler: leaderboardRoute('xp'), auth: true }],
+  ['GET /v1/purchase-events/pending', { handler: pendingPurchaseEventsRoute, auth: true }],
+  ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: true, json: true }],
   ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute, json: true }]
 ]);
 
@@ -54,13 +57,8 @@ function parseBody(event, headers, maxBytes) {
   }
 }
 
-function launchParams(headers, event) {
-  const direct = headers['x-vk-launch-params'];
-  if (direct) return direct;
-  const authorization = headers.authorization || '';
-  if (authorization.startsWith('VK ')) return authorization.slice(3);
-  const query = event.queryStringParameters;
-  return query ? new URLSearchParams(query).toString() : '';
+function launchParams(headers) {
+  return headers['x-vk-launch-params'] || '';
 }
 
 function corsHeaders(origin, allowedOrigins) {
@@ -99,7 +97,7 @@ function createRouter(dependencies) {
       if (routeConfig.json) context.body = parseBody(event, headers, dependencies.config.maxBodyBytes);
       if (routeConfig.auth) {
         context.auth = verifyVkLaunchParams(
-          launchParams(headers, event),
+          launchParams(headers),
           dependencies.config.vkAppSecret,
           dependencies.config.vkAppId
         );

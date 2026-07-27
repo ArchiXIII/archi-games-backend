@@ -1,9 +1,101 @@
 openapi: 3.0.0
 info:
   title: Archi Games API
-  version: 1.0.0
+  version: 1.1.0
 servers:
   - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
+components:
+  parameters:
+    VkLaunchParams:
+      name: X-VK-Launch-Params
+      in: header
+      required: true
+      schema:
+        type: string
+        maxLength: 8192
+  schemas:
+    LeaderboardSync:
+      type: object
+      additionalProperties: false
+      required: [totalStars, totalXp]
+      properties:
+        totalStars:
+          type: integer
+          minimum: 0
+        totalXp:
+          type: integer
+          minimum: 0
+    LeaderboardEntry:
+      type: object
+      required: [rank, userId, playerName, avatarUrl, score, totalStars, totalXp, isCurrentUser]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        userId:
+          type: string
+        playerName:
+          type: string
+        avatarUrl:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+        totalStars:
+          type: integer
+          minimum: 0
+        totalXp:
+          type: integer
+          minimum: 0
+        isCurrentUser:
+          type: boolean
+    PurchaseEvent:
+      type: object
+      required: [eventId, orderId, type, coinsDelta]
+      properties:
+        eventId:
+          type: string
+        orderId:
+          type: string
+        type:
+          type: string
+          enum: [grant, refund]
+        coinsDelta:
+          type: integer
+    AckRequest:
+      type: object
+      additionalProperties: false
+      required: [eventId]
+      properties:
+        eventId:
+          type: string
+    LeaderboardResponse:
+      type: object
+      required: [entries, currentUser, limit, offset]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        currentUser:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/LeaderboardEntry"
+        limit:
+          type: integer
+        offset:
+          type: integer
+    PendingEventsResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/PurchaseEvent"
+  responses:
+    Unauthorized:
+      description: Invalid or missing VK launch parameters
 paths:
   /health:
     get:
@@ -14,24 +106,147 @@ paths:
       responses:
         "200":
           description: Healthy
-  /v1/player/balance:
-    get:
-      x-yc-apigateway-integration:
-        type: cloud_functions
-        function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
-      responses:
-        "200":
-          description: Player balance
-  /v1/player/sync:
+  /v1/leaderboards/sync:
     post:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeaderboardSync"
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
         service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
-          description: Synchronized safe client data
+          description: Monotonic totals synchronized
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, totalStars, totalXp]
+                properties:
+                  ok:
+                    type: boolean
+                  totalStars:
+                    type: integer
+                    minimum: 0
+                  totalXp:
+                    type: integer
+                    minimum: 0
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/leaderboards/stars:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000000
+            default: 0
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ajeove1c4281jt34rngj
+      responses:
+        "200":
+          description: Stars leaderboard and current user rank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/leaderboards/xp:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000000
+            default: 0
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ajeove1c4281jt34rngj
+      responses:
+        "200":
+          description: XP leaderboard and current user rank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/purchase-events/pending:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ajeove1c4281jt34rngj
+      responses:
+        "200":
+          description: Undelivered purchase events for the current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingEventsResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/purchase-events/ack:
+    post:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AckRequest"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+        service_account_id: ajeove1c4281jt34rngj
+      responses:
+        "200":
+          description: Event acknowledged or already acknowledged
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, eventId]
+                properties:
+                  ok:
+                    type: boolean
+                  eventId:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /v1/vk/payments/callback:
     post:
       x-yc-apigateway-integration:
@@ -40,4 +255,4 @@ paths:
         service_account_id: ajeove1c4281jt34rngj
       responses:
         "501":
-          description: Adapter is intentionally disabled until VK callback contract is configured
+          description: Adapter is disabled until the exact VK callback contract is configured

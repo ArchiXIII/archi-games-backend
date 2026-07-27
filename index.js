@@ -2,26 +2,31 @@
 
 const { loadConfig } = require('./src/config');
 const { getDriver } = require('./src/db/ydb');
-const { PlayersRepository } = require('./src/db/repositories/playersRepository');
+const { LeaderboardRepository } = require('./src/db/repositories/leaderboardRepository');
 const { OrdersRepository } = require('./src/db/repositories/ordersRepository');
+const { PurchaseEventsRepository } = require('./src/db/repositories/purchaseEventsRepository');
 const { ProductsService } = require('./src/services/productsService');
-const { BalanceService } = require('./src/services/balanceService');
+const { LeaderboardService } = require('./src/services/leaderboardService');
 const { PurchaseService } = require('./src/services/purchaseService');
+const { PurchaseEventsService } = require('./src/services/purchaseEventsService');
 const { createRouter } = require('./src/router');
 
 const config = loadConfig();
-const playersRepository = new PlayersRepository(config);
+const leaderboardRepository = new LeaderboardRepository(config);
 const ordersRepository = new OrdersRepository(config);
+const purchaseEventsRepository = new PurchaseEventsRepository(config);
 const productsService = new ProductsService(config.products);
-const balanceService = new BalanceService(playersRepository);
+const leaderboardService = new LeaderboardService(leaderboardRepository);
 const purchaseService = new PurchaseService(productsService, ordersRepository);
+const purchaseEventsService = new PurchaseEventsService(purchaseEventsRepository);
 
 if (config.ydbEndpoint && config.ydbDatabase) getDriver(config);
 
 const handler = createRouter({
   config,
-  balanceService,
-  purchaseService
+  leaderboardService,
+  purchaseService,
+  purchaseEventsService
 });
 
 module.exports = { handler };

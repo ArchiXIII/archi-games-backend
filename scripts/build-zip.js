@@ -45,8 +45,11 @@ async function zip() {
         'node_modules/.package-lock.json',
         'node_modules/@types/**',
         'node_modules/**/README*',
+        'node_modules/**/readme*',
         'node_modules/**/CHANGELOG*',
+        'node_modules/**/changelog*',
         'node_modules/**/HISTORY*',
+        'node_modules/**/history*',
         'node_modules/**/docs/**',
         'node_modules/**/examples/**',
         'node_modules/**/benchmark/**',
@@ -66,7 +69,8 @@ async function zip() {
         '**/.env.*',
         '**/*.pem',
         '**/*.key',
-        '**/*service-account*.json'
+        '**/*service-account*.json',
+        'src/db/migrations.js'
       ]
     });
     archive.finalize();
@@ -91,6 +95,7 @@ async function main() {
   } else {
     await run('npm', ['ci', '--omit=dev', '--omit=optional', '--ignore-scripts', '--no-audit', '--no-fund'], stage);
   }
+  await fs.rm(path.join(stage, 'package-lock.json'), { force: true });
   await zip();
   await fs.rm(stage, { recursive: true, force: true });
   console.log(output);

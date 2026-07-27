@@ -2,10 +2,10 @@
 
 const PRODUCTS = Object.freeze({
   'crystal-match': Object.freeze({
-    coins_500: Object.freeze({ coins: 500 }),
-    coins_1500: Object.freeze({ coins: 1500 }),
-    coins_4000: Object.freeze({ coins: 4000 }),
-    coins_10000: Object.freeze({ coins: 10000 })
+    coins_10000: Object.freeze({ coins: 10000 }),
+    coins_25000: Object.freeze({ coins: 25000 }),
+    coins_60000: Object.freeze({ coins: 60000 }),
+    coins_150000: Object.freeze({ coins: 150000 })
   })
 });
 
@@ -17,7 +17,7 @@ function splitOrigins(value) {
 function loadConfig(env = process.env) {
   return Object.freeze({
     service: 'archi-games-api',
-    version: '1.0.0',
+    version: '1.1.0',
     gameId: 'crystal-match',
     platform: 'vk',
     ydbEndpoint: env.YDB_ENDPOINT || '',

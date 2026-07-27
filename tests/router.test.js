@@ -4,6 +4,20 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createRouter } = require('../src/router');
 const { loadConfig } = require('../src/config');
+const { createSignature } = require('../src/auth/vkLaunchParams');
+
+function authHeaders(contentType) {
+  const params = new URLSearchParams({
+    vk_app_id: '42',
+    vk_user_id: '123',
+    vk_language: 'ru'
+  });
+  params.set('sign', createSignature(params, 'secret'));
+  return {
+    ...(contentType ? { 'content-type': contentType } : {}),
+    'x-vk-launch-params': params.toString()
+  };
+}
 
 function router(overrides = {}) {
   const config = {
@@ -14,9 +28,20 @@ function router(overrides = {}) {
   };
   return createRouter({
     config,
-    balanceService: {
-      async get(gameId, platform, userId) {
-        return { gameId, platform, userId, coins: 0, updatedAt: new Date(0).toISOString() };
+    leaderboardService: {
+      async sync() {
+        return { totalStars: 100, totalXp: 5000 };
+      },
+      async list(gameId, platform, userId, board) {
+        return { entries: [], currentUser: null, limit: 20, offset: 0, board };
+      }
+    },
+    purchaseEventsService: {
+      async pending() {
+        return [];
+      },
+      async ack(gameId, platform, userId, body) {
+        return body.eventId;
       }
     }
   });
@@ -40,12 +65,45 @@ test('404', async () => {
 test('invalid JSON', async () => {
   const response = await router()({
     httpMethod: 'POST',
-    path: '/v1/player/sync',
-    headers: { 'content-type': 'application/json' },
+    path: '/v1/leaderboards/sync',
+    headers: authHeaders('application/json'),
     body: '{'
   });
   assert.equal(response.statusCode, 400);
   assert.equal(JSON.parse(response.body).error.code, 'INVALID_JSON');
+});
+
+test('client routes require signed VK launch params', async () => {
+  const route = router();
+  const response = await route({
+    httpMethod: 'GET',
+    path: '/v1/leaderboards/stars'
+  });
+  const queryFallback = await route({
+    httpMethod: 'GET',
+    path: '/v1/leaderboards/stars',
+    queryStringParameters: { vk_user_id: '123', sign: 'invalid' }
+  });
+  assert.equal(response.statusCode, 401);
+  assert.equal(queryFallback.statusCode, 401);
+  assert.equal(JSON.parse(response.body).error.code, 'UNAUTHORIZED');
+});
+
+test('leaderboard and purchase event routes use VK identity', async () => {
+  const route = router();
+  const leaderboard = await route({
+    httpMethod: 'GET',
+    path: '/v1/leaderboards/xp',
+    headers: authHeaders()
+  });
+  const pending = await route({
+    httpMethod: 'GET',
+    path: '/v1/purchase-events/pending',
+    headers: authHeaders()
+  });
+  assert.equal(leaderboard.statusCode, 200);
+  assert.equal(JSON.parse(leaderboard.body).board, 'xp');
+  assert.deepEqual(JSON.parse(pending.body), { events: [] });
 });
 
 test('CORS is returned only for allowlisted origins', async () => {
