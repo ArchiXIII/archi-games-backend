@@ -3,6 +3,10 @@
 const { HttpError } = require('../response');
 const { numberValue } = require('../db/values');
 
+const PLAYER_NAME_LIMIT = 80;
+const PLAYER_NAME_RAW_LIMIT = 512;
+const UNSAFE_NAME_CHARACTERS = /[\p{Cc}\u200B\u200E\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]/gu;
+
 function score(value) {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new HttpError(400, 'INVALID_REQUEST', 'Invalid request');
@@ -20,6 +24,22 @@ function pageValue(value, fallback, minimum, maximum) {
     throw new HttpError(400, 'INVALID_REQUEST', 'Invalid request');
   }
   return parsed;
+}
+
+function cleanPlayerName(value) {
+  if (value == null) return '';
+  if (typeof value !== 'string' || value.length > PLAYER_NAME_RAW_LIMIT) {
+    throw new HttpError(400, 'INVALID_REQUEST', 'Invalid request');
+  }
+  const cleaned = value
+    .normalize('NFKC')
+    .replace(UNSAFE_NAME_CHARACTERS, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+  const characters = Array.from(cleaned);
+  return characters.length > PLAYER_NAME_LIMIT
+    ? characters.slice(0, PLAYER_NAME_LIMIT).join('')
+    : cleaned;
 }
 
 function entry(row, rank, board, currentUserId) {
@@ -45,7 +65,8 @@ class LeaderboardService {
 
   async sync(gameId, platform, userId, body) {
     if (!body || typeof body !== 'object' || Array.isArray(body) ||
-        Object.keys(body).some((key) => key !== 'totalStars' && key !== 'totalXp')) {
+        Object.keys(body).some((key) =>
+          key !== 'totalStars' && key !== 'totalXp' && key !== 'playerName')) {
       throw new HttpError(400, 'INVALID_REQUEST', 'Invalid request');
     }
     const row = await this.repository.sync(
@@ -53,7 +74,8 @@ class LeaderboardService {
       platform,
       userId,
       score(body.totalStars),
-      score(body.totalXp)
+      score(body.totalXp),
+      cleanPlayerName(body.playerName)
     );
     return {
       totalStars: numberValue(row.total_stars),
@@ -71,4 +93,11 @@ class LeaderboardService {
   }
 }
 
-module.exports = { LeaderboardService, score, pageValue, entry };
+module.exports = {
+  LeaderboardService,
+  score,
+  pageValue,
+  entry,
+  cleanPlayerName,
+  PLAYER_NAME_LIMIT
+};

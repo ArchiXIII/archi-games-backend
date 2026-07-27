@@ -17,7 +17,7 @@ function splitOrigins(value) {
 function loadConfig(env = process.env) {
   return Object.freeze({
     service: 'archi-games-api',
-    version: '1.1.0',
+    version: '1.1.1',
     gameId: 'crystal-match',
     platform: 'vk',
     ydbEndpoint: env.YDB_ENDPOINT || '',

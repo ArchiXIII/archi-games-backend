@@ -13,7 +13,7 @@ class LeaderboardRepository {
     this.config = config;
   }
 
-  async sync(gameId, platform, userId, totalStars, totalXp) {
+  async sync(gameId, platform, userId, totalStars, totalXp, playerName) {
     return withSession(this.config, async (session) => {
       const result = await session.executeQuery(`
         DECLARE $game_id AS Utf8;
@@ -21,16 +21,23 @@ class LeaderboardRepository {
         DECLARE $user_id AS Utf8;
         DECLARE $total_stars AS Int64;
         DECLARE $total_xp AS Int64;
+        DECLARE $player_name AS Utf8;
         UPDATE leaderboard_totals SET
           total_stars = MAX_OF(total_stars, $total_stars),
           total_xp = MAX_OF(total_xp, $total_xp),
+          player_name = CASE
+            WHEN $player_name != "" THEN $player_name
+            ELSE player_name
+          END,
           updated_at = CurrentUtcTimestamp()
         WHERE game_id = $game_id AND platform = $platform
           AND platform_user_id = $user_id;
         INSERT INTO leaderboard_totals
           (game_id, platform, platform_user_id, player_name, avatar_url,
            total_stars, total_xp, updated_at)
-        SELECT $game_id, $platform, $user_id, $user_id, NULL,
+        SELECT $game_id, $platform, $user_id,
+               CASE WHEN $player_name != "" THEN $player_name ELSE $user_id END,
+               NULL,
                $total_stars, $total_xp, CurrentUtcTimestamp()
         WHERE NOT EXISTS (
           SELECT 1 FROM leaderboard_totals
@@ -45,7 +52,8 @@ class LeaderboardRepository {
         $platform: TypedValues.utf8(platform),
         $user_id: TypedValues.utf8(userId),
         $total_stars: TypedValues.int64(totalStars),
-        $total_xp: TypedValues.int64(totalXp)
+        $total_xp: TypedValues.int64(totalXp),
+        $player_name: TypedValues.utf8(playerName)
       });
       return rows(result).at(0);
     });

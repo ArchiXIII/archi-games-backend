@@ -6,15 +6,16 @@ const { LeaderboardService } = require('../src/services/leaderboardService');
 
 test('leaderboard sync forwards both monotonic totals', async () => {
   const repository = {
-    async sync(gameId, platform, userId, totalStars, totalXp) {
+    async sync(gameId, platform, userId, totalStars, totalXp, playerName) {
       assert.deepEqual(
-        { gameId, platform, userId, totalStars, totalXp },
+        { gameId, platform, userId, totalStars, totalXp, playerName },
         {
           gameId: 'crystal-match',
           platform: 'vk',
           userId: '123',
           totalStars: 100,
-          totalXp: 5000
+          totalXp: 5000,
+          playerName: 'Alice Smith'
         }
       );
       return { total_stars: 120, total_xp: 5000 };
@@ -22,9 +23,47 @@ test('leaderboard sync forwards both monotonic totals', async () => {
   };
   const service = new LeaderboardService(repository);
   assert.deepEqual(
-    await service.sync('crystal-match', 'vk', '123', { totalStars: 100, totalXp: 5000 }),
+    await service.sync('crystal-match', 'vk', '123', {
+      totalStars: 100,
+      totalXp: 5000,
+      playerName: '  Alice\n\u202ESmith  '
+    }),
     { totalStars: 120, totalXp: 5000 }
   );
+});
+
+test('empty player name does not request an overwrite', async () => {
+  let receivedName;
+  const repository = {
+    async sync(gameId, platform, userId, totalStars, totalXp, playerName) {
+      receivedName = playerName;
+      return { total_stars: totalStars, total_xp: totalXp };
+    }
+  };
+  const service = new LeaderboardService(repository);
+  await service.sync('crystal-match', 'vk', '123', {
+    totalStars: 1,
+    totalXp: 2,
+    playerName: ' \n\t '
+  });
+  assert.equal(receivedName, '');
+});
+
+test('player name is limited to 80 Unicode characters', async () => {
+  let receivedName;
+  const repository = {
+    async sync(gameId, platform, userId, totalStars, totalXp, playerName) {
+      receivedName = playerName;
+      return { total_stars: totalStars, total_xp: totalXp };
+    }
+  };
+  const service = new LeaderboardService(repository);
+  await service.sync('crystal-match', 'vk', '123', {
+    totalStars: 1,
+    totalXp: 2,
+    playerName: '😀'.repeat(100)
+  });
+  assert.equal(Array.from(receivedName).length, 80);
 });
 
 test('leaderboard sync rejects invalid totals and extra fields', async () => {

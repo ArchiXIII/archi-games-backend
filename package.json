@@ -1,6 +1,6 @@
 {
   "name": "archi-games-backend",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Archi Games serverless backend",
   "main": "index.js",
