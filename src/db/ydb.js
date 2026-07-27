@@ -6,6 +6,7 @@ const {
   AnonymousAuthService,
   TypedData
 } = require('ydb-sdk');
+const { MetadataTokenService } = require('./metadataTokenService');
 
 let driver;
 let readyPromise;
@@ -22,7 +23,7 @@ function getDriver(config) {
   if (!driver) {
     const authService = config.nodeEnv === 'test-local'
       ? new AnonymousAuthService()
-      : new MetadataAuthService();
+      : new MetadataAuthService(new MetadataTokenService());
     driver = new Driver({
       connectionString: connectionString(config),
       authService,

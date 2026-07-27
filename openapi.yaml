@@ -10,7 +10,7 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Healthy
@@ -19,7 +19,7 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Player balance
@@ -28,7 +28,7 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Synchronized safe client data
@@ -37,7 +37,7 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ${APIGATEWAY_SERVICE_ACCOUNT_ID}
+        service_account_id: ajeove1c4281jt34rngj
       responses:
         "501":
           description: Adapter is intentionally disabled until VK callback contract is configured
