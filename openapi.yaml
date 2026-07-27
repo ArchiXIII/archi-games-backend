@@ -4,6 +4,8 @@ info:
   version: 1.1.1
 servers:
   - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
+x-yc-apigateway:
+  service_account_id: ajeove1c4281jt34rngj
 components:
   parameters:
     VkLaunchParams:
@@ -105,7 +107,6 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Healthy
@@ -122,7 +123,6 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Monotonic totals synchronized
@@ -163,7 +163,6 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Stars leaderboard and current user rank
@@ -194,7 +193,6 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: XP leaderboard and current user rank
@@ -211,7 +209,6 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Undelivered purchase events for the current user
@@ -234,7 +231,6 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
       responses:
         "200":
           description: Event acknowledged or already acknowledged
@@ -255,7 +251,6 @@ paths:
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
-        service_account_id: ajeove1c4281jt34rngj
       responses:
         "501":
           description: Adapter is disabled until the exact VK callback contract is configured
