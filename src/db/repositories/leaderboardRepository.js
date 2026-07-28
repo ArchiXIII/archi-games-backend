@@ -39,6 +39,7 @@ class LeaderboardRepository {
                CASE WHEN $player_name != "" THEN $player_name ELSE $user_id END,
                NULL,
                $total_stars, $total_xp, CurrentUtcTimestamp()
+        FROM (VALUES (1)) AS seed(dummy)
         WHERE NOT EXISTS (
           SELECT 1 FROM leaderboard_totals
           WHERE game_id = $game_id AND platform = $platform
