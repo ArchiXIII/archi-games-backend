@@ -11,7 +11,6 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - `GET /health`
 - `POST /v1/leaderboards/sync`
 - `GET /v1/leaderboards/stars?limit=20&offset=0`
-- `GET /v1/leaderboards/xp?limit=20&offset=0`
 - `GET /v1/purchase-events/pending`
 - `POST /v1/purchase-events/ack`
 - `POST /v1/vk/endless-score`
@@ -26,14 +25,15 @@ Sync принимает:
 ```json
 {
   "totalStars": 100,
-  "totalXp": 5000,
   "playerName": "Alex"
 }
 ```
 
 `playerName` необязателен. Имя нормализуется, очищается от управляющих и bidi-символов и ограничивается 80 Unicode-символами. Непустое имя сохраняется при создании и обновляется при следующих sync; пустое или отсутствующее имя не затирает сохранённое.
 
-Оба итоговых значения неотрицательные целые. В YDB каждое обновляется через `MAX_OF`, поэтому старое значение нельзя уменьшить. Ответы рейтингов содержат `entries` и `currentUser`; каждая строка включает `rank`, `userId`, `playerName`, `avatarUrl`, `score`, `totalStars`, `totalXp` и `isCurrentUser`. Формат ответов не изменён и совместим с текущим VK-клиентом Crystal Match. Входное поле для аватара не поддерживается.
+`totalStars` — обязательное неотрицательное целое. В YDB оно обновляется через `MAX_OF`, поэтому старое значение нельзя уменьшить. Для совместимости со старой опубликованной сборкой поле `totalXp` временно разрешено в sync, но полностью игнорируется, не проверяется и не сохраняется. Rank XP хранится клиентом в VK Storage.
+
+Ответ рейтинга звёзд содержит `entries` и `currentUser`; каждая строка включает `rank`, `userId`, `playerName`, `avatarUrl`, `score`, `totalStars` и `isCurrentUser`. Публичный маршрут рейтинга XP отключён. Входное поле для аватара не поддерживается.
 
 ### События покупок
 
@@ -103,6 +103,8 @@ ACK принимает `eventId`. Повторный ACK безопасен. Ч�
 - добавляет в `purchase_events` поля `game_id`, `platform_user_id`, `coins_delta`, `delivered_at`;
 - добавляет индекс очереди доставки `idx_purchase_events_delivery`;
 - не удаляет и не изменяет существующие данные.
+
+Колонка `total_xp`, индекс `idx_leaderboard_xp` и существующие XP-данные сохранены как legacy для совместимости схемы, но runtime их не читает и не обновляет. При создании новой строки в обязательную legacy-колонку записывается нейтральный `0`.
 
 ### Применение миграции 002 через YDB Query Editor
 

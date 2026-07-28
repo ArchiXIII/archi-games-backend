@@ -5,7 +5,7 @@ const logger = require('./logger');
 const { HttpError, error } = require('./response');
 const { verifyVkLaunchParams } = require('./auth/vkLaunchParams');
 const { healthRoute } = require('./routes/health');
-const { syncLeaderboardRoute, leaderboardRoute } = require('./routes/leaderboards');
+const { syncLeaderboardRoute, starsLeaderboardRoute } = require('./routes/leaderboards');
 const { pendingPurchaseEventsRoute, ackPurchaseEventRoute } = require('./routes/purchaseEvents');
 const { vkEndlessScoreRoute } = require('./routes/vkEndlessScore');
 const { vkPaymentsCallbackRoute } = require('./routes/vkPaymentsCallback');
@@ -13,8 +13,7 @@ const { vkPaymentsCallbackRoute } = require('./routes/vkPaymentsCallback');
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
   ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: true, json: true }],
-  ['GET /v1/leaderboards/stars', { handler: leaderboardRoute('stars'), auth: true }],
-  ['GET /v1/leaderboards/xp', { handler: leaderboardRoute('xp'), auth: true }],
+  ['GET /v1/leaderboards/stars', { handler: starsLeaderboardRoute, auth: true }],
   ['GET /v1/purchase-events/pending', { handler: pendingPurchaseEventsRoute, auth: true }],
   ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: true, json: true }],
   ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: true, json: true }],

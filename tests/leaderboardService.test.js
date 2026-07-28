@@ -4,21 +4,20 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { LeaderboardService } = require('../src/services/leaderboardService');
 
-test('leaderboard sync forwards both monotonic totals', async () => {
+test('leaderboard sync forwards stars and name while ignoring legacy XP', async () => {
   const repository = {
-    async sync(gameId, platform, userId, totalStars, totalXp, playerName) {
+    async sync(gameId, platform, userId, totalStars, playerName) {
       assert.deepEqual(
-        { gameId, platform, userId, totalStars, totalXp, playerName },
+        { gameId, platform, userId, totalStars, playerName },
         {
           gameId: 'crystal-match',
           platform: 'vk',
           userId: '123',
           totalStars: 100,
-          totalXp: 5000,
           playerName: 'Alice Smith'
         }
       );
-      return { total_stars: 120, total_xp: 5000 };
+      return { total_stars: 120 };
     }
   };
   const service = new LeaderboardService(repository);
@@ -28,16 +27,33 @@ test('leaderboard sync forwards both monotonic totals', async () => {
       totalXp: 5000,
       playerName: '  Alice\n\u202ESmith  '
     }),
-    { totalStars: 120, totalXp: 5000 }
+    { totalStars: 120 }
   );
+});
+
+test('legacy totalXp is accepted without validation or persistence', async () => {
+  let call;
+  const repository = {
+    async sync(...args) {
+      call = args;
+      return { total_stars: args[3] };
+    }
+  };
+  const service = new LeaderboardService(repository);
+  const result = await service.sync('crystal-match', 'vk', '123', {
+    totalStars: 10,
+    totalXp: { ignored: true }
+  });
+  assert.deepEqual(result, { totalStars: 10 });
+  assert.deepEqual(call, ['crystal-match', 'vk', '123', 10, '']);
 });
 
 test('empty player name does not request an overwrite', async () => {
   let receivedName;
   const repository = {
-    async sync(gameId, platform, userId, totalStars, totalXp, playerName) {
+    async sync(gameId, platform, userId, totalStars, playerName) {
       receivedName = playerName;
-      return { total_stars: totalStars, total_xp: totalXp };
+      return { total_stars: totalStars };
     }
   };
   const service = new LeaderboardService(repository);
@@ -52,9 +68,9 @@ test('empty player name does not request an overwrite', async () => {
 test('player name is limited to 80 Unicode characters', async () => {
   let receivedName;
   const repository = {
-    async sync(gameId, platform, userId, totalStars, totalXp, playerName) {
+    async sync(gameId, platform, userId, totalStars, playerName) {
       receivedName = playerName;
-      return { total_stars: totalStars, total_xp: totalXp };
+      return { total_stars: totalStars };
     }
   };
   const service = new LeaderboardService(repository);
@@ -76,6 +92,10 @@ test('leaderboard sync rejects invalid totals and extra fields', async () => {
     service.sync('crystal-match', 'vk', '123', { totalStars: 1, totalXp: 2, coins: 3 }),
     (cause) => cause.code === 'INVALID_REQUEST'
   );
+  await assert.rejects(
+    service.sync('crystal-match', 'vk', '123', { playerName: 'Alex' }),
+    (cause) => cause.code === 'INVALID_REQUEST'
+  );
 });
 
 test('leaderboard response matches Crystal Match client contract', async () => {
@@ -86,15 +106,13 @@ test('leaderboard response matches Crystal Match client contract', async () => {
           platform_user_id: '456',
           player_name: 'Alex',
           avatar_url: 'https://example.com/avatar.jpg',
-          total_stars: 150,
-          total_xp: 7000
+          total_stars: 150
         }],
         current: {
           platform_user_id: '123',
           player_name: '123',
           avatar_url: null,
-          total_stars: 100,
-          total_xp: 5000
+          total_stars: 100
         },
         rank: 7
       };
@@ -105,7 +123,6 @@ test('leaderboard response matches Crystal Match client contract', async () => {
     'crystal-match',
     'vk',
     '123',
-    'stars',
     { limit: '20', offset: '5' }
   );
   assert.deepEqual(result.entries[0], {
@@ -115,7 +132,6 @@ test('leaderboard response matches Crystal Match client contract', async () => {
     avatarUrl: 'https://example.com/avatar.jpg',
     score: 150,
     totalStars: 150,
-    totalXp: 7000,
     isCurrentUser: false
   });
   assert.equal(result.currentUser.rank, 7);

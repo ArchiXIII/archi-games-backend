@@ -30,10 +30,10 @@ function router(overrides = {}) {
     config,
     leaderboardService: {
       async sync() {
-        return { totalStars: 100, totalXp: 5000 };
+        return { totalStars: 100 };
       },
-      async list(gameId, platform, userId, board) {
-        return { entries: [], currentUser: null, limit: 20, offset: 0, board };
+      async list() {
+        return { entries: [], currentUser: null, limit: 20, offset: 0 };
       }
     },
     purchaseEventsService: {
@@ -94,11 +94,11 @@ test('client routes require signed VK launch params', async () => {
   assert.equal(JSON.parse(response.body).error.code, 'UNAUTHORIZED');
 });
 
-test('leaderboard and purchase event routes use VK identity', async () => {
+test('stars and purchase event routes use VK identity', async () => {
   const route = router();
   const leaderboard = await route({
     httpMethod: 'GET',
-    path: '/v1/leaderboards/xp',
+    path: '/v1/leaderboards/stars',
     headers: authHeaders()
   });
   const pending = await route({
@@ -107,8 +107,18 @@ test('leaderboard and purchase event routes use VK identity', async () => {
     headers: authHeaders()
   });
   assert.equal(leaderboard.statusCode, 200);
-  assert.equal(JSON.parse(leaderboard.body).board, 'xp');
+  assert.deepEqual(JSON.parse(leaderboard.body).entries, []);
   assert.deepEqual(JSON.parse(pending.body), { events: [] });
+});
+
+test('XP leaderboard route is disabled', async () => {
+  const response = await router()({
+    httpMethod: 'GET',
+    path: '/v1/leaderboards/xp',
+    headers: authHeaders()
+  });
+  assert.equal(response.statusCode, 404);
+  assert.equal(JSON.parse(response.body).error.code, 'NOT_FOUND');
 });
 
 test('endless score route uses VK identity and returns the submitted score', async () => {

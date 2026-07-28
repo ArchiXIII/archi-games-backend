@@ -12,17 +12,14 @@ async function syncLeaderboardRoute(context) {
   return json(200, { ok: true, ...result });
 }
 
-function leaderboardRoute(board) {
-  return async (context) => {
-    const result = await context.leaderboardService.list(
-      context.config.gameId,
-      context.config.platform,
-      context.auth.userId,
-      board,
-      context.event.queryStringParameters
-    );
-    return json(200, result);
-  };
+async function starsLeaderboardRoute(context) {
+  const result = await context.leaderboardService.list(
+    context.config.gameId,
+    context.config.platform,
+    context.auth.userId,
+    context.event.queryStringParameters
+  );
+  return json(200, result);
 }
 
-module.exports = { syncLeaderboardRoute, leaderboardRoute };
+module.exports = { syncLeaderboardRoute, starsLeaderboardRoute };

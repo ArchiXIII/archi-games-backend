@@ -42,18 +42,16 @@ function cleanPlayerName(value) {
     : cleaned;
 }
 
-function entry(row, rank, board, currentUserId) {
+function entry(row, rank, currentUserId) {
   const totalStars = numberValue(row.total_stars);
-  const totalXp = numberValue(row.total_xp);
   const userId = String(row.platform_user_id);
   return {
     rank,
     userId,
     playerName: row.player_name || userId,
     avatarUrl: row.avatar_url || '',
-    score: board === 'xp' ? totalXp : totalStars,
+    score: totalStars,
     totalStars,
-    totalXp,
     isCurrentUser: userId === currentUserId
   };
 }
@@ -74,21 +72,19 @@ class LeaderboardService {
       platform,
       userId,
       score(body.totalStars),
-      score(body.totalXp),
       cleanPlayerName(body.playerName)
     );
     return {
-      totalStars: numberValue(row.total_stars),
-      totalXp: numberValue(row.total_xp)
+      totalStars: numberValue(row.total_stars)
     };
   }
 
-  async list(gameId, platform, userId, board, query) {
+  async list(gameId, platform, userId, query) {
     const limit = pageValue(query && query.limit, 20, 1, 100);
     const offset = pageValue(query && query.offset, 0, 0, 1000000);
-    const result = await this.repository.list(gameId, platform, userId, board, limit, offset);
-    const entries = result.entries.map((row, index) => entry(row, offset + index + 1, board, userId));
-    const currentUser = result.current ? entry(result.current, result.rank, board, userId) : null;
+    const result = await this.repository.list(gameId, platform, userId, limit, offset);
+    const entries = result.entries.map((row, index) => entry(row, offset + index + 1, userId));
+    const currentUser = result.current ? entry(result.current, result.rank, userId) : null;
     return { entries, currentUser, limit, offset };
   }
 }

@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Archi Games API
-  version: 1.2.0
+  version: 1.3.0
 servers:
   - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
 x-yc-apigateway:
@@ -28,20 +28,20 @@ components:
     LeaderboardSync:
       type: object
       additionalProperties: false
-      required: [totalStars, totalXp]
+      required: [totalStars]
       properties:
         totalStars:
           type: integer
           minimum: 0
         totalXp:
-          type: integer
-          minimum: 0
+          deprecated: true
+          description: Accepted temporarily and ignored
         playerName:
           type: string
           maxLength: 512
     LeaderboardEntry:
       type: object
-      required: [rank, userId, playerName, avatarUrl, score, totalStars, totalXp, isCurrentUser]
+      required: [rank, userId, playerName, avatarUrl, score, totalStars, isCurrentUser]
       properties:
         rank:
           type: integer
@@ -56,9 +56,6 @@ components:
           type: integer
           minimum: 0
         totalStars:
-          type: integer
-          minimum: 0
-        totalXp:
           type: integer
           minimum: 0
         isCurrentUser:
@@ -149,14 +146,11 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [ok, totalStars, totalXp]
+                required: [ok, totalStars]
                 properties:
                   ok:
                     type: boolean
                   totalStars:
-                    type: integer
-                    minimum: 0
-                  totalXp:
                     type: integer
                     minimum: 0
         "401":
@@ -185,36 +179,6 @@ paths:
       responses:
         "200":
           description: Stars leaderboard and current user rank
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LeaderboardResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-  /v1/leaderboards/xp:
-    get:
-      parameters:
-        - $ref: "#/components/parameters/VkLaunchParams"
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-        - name: offset
-          in: query
-          schema:
-            type: integer
-            minimum: 0
-            maximum: 1000000
-            default: 0
-      x-yc-apigateway-integration:
-        type: cloud_functions
-        function_id: d4eb6i2ivnhumclg3ti9
-      responses:
-        "200":
-          description: XP leaderboard and current user rank
           content:
             application/json:
               schema:
