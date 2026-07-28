@@ -14,6 +14,7 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - `GET /v1/leaderboards/xp?limit=20&offset=0`
 - `GET /v1/purchase-events/pending`
 - `POST /v1/purchase-events/ack`
+- `POST /v1/vk/endless-score`
 - `POST /v1/vk/payments/callback`
 
 Все клиентские маршруты требуют исходную подписанную строку VK в заголовке `X-VK-Launch-Params`. Сервер проверяет HMAC, `vk_app_id` и получает идентификатор пользователя только из `vk_user_id`. Callback платежей не использует клиентскую авторизацию и пока намеренно отвечает `501 VK_CALLBACK_NOT_CONFIGURED`.
@@ -62,6 +63,12 @@ ACK принимает `eventId`. Повторный ACK безопасен. Ч�
 
 Точный внешний протокол VK Payments не выдуман и не включён. После получения официального callback-контракта адаптер должен проверить запрос VK и вызвать уже подготовленные `PurchaseService.grant` или `PurchaseService.refund`.
 
+### Бесконечный режим VK
+
+`POST /v1/vk/endless-score` принимает единственное поле `score` — неотрицательное безопасное целое. Идентификатор пользователя берётся только из проверенных `X-VK-Launch-Params`. Backend вызывает `secure.addAppEvent` с `activity_id=2`, сервисным токеном и настроенной версией VK API. Токен передаётся только в теле server-to-server запроса, не возвращается клиенту и не записывается в логи.
+
+При успехе маршрут возвращает переданный score. Ошибки сети, HTTP, JSON и ошибки VK API преобразуются в безопасный ответ `502 VK_API_ERROR`; отсутствующая конфигурация возвращает `503 VK_API_NOT_CONFIGURED`.
+
 ## Переменные окружения
 
 | Переменная | Назначение |
@@ -70,6 +77,8 @@ ACK принимает `eventId`. Повторный ACK безопасен. Ч�
 | `YDB_DATABASE` | полный database path |
 | `VK_APP_ID` | ID приложения VK |
 | `VK_APP_SECRET` | защищённый ключ для проверки launch params |
+| `VK_SERVICE_TOKEN` | сервисный токен приложения для server-to-server вызовов VK API |
+| `VK_API_VERSION` | версия VK API, по умолчанию `5.199` |
 | `VK_CALLBACK_SECRET` | будущий секрет точного VK callback |
 | `ALLOWED_ORIGINS` | разрешённые origin через запятую |
 | `NODE_ENV` | `production` |

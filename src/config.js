@@ -17,13 +17,15 @@ function splitOrigins(value) {
 function loadConfig(env = process.env) {
   return Object.freeze({
     service: 'archi-games-api',
-    version: '1.1.1',
+    version: '1.2.0',
     gameId: 'crystal-match',
     platform: 'vk',
     ydbEndpoint: env.YDB_ENDPOINT || '',
     ydbDatabase: env.YDB_DATABASE || '',
     vkAppId: env.VK_APP_ID || '',
     vkAppSecret: env.VK_APP_SECRET || '',
+    vkServiceToken: env.VK_SERVICE_TOKEN || '',
+    vkApiVersion: env.VK_API_VERSION || '5.199',
     vkCallbackSecret: env.VK_CALLBACK_SECRET || '',
     allowedOrigins: splitOrigins(env.ALLOWED_ORIGINS),
     nodeEnv: env.NODE_ENV || 'development',

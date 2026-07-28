@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Archi Games API
-  version: 1.1.1
+  version: 1.2.0
 servers:
   - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
 x-yc-apigateway:
@@ -83,6 +83,16 @@ components:
       properties:
         eventId:
           type: string
+    EndlessScoreRequest:
+      type: object
+      additionalProperties: false
+      required: [score]
+      properties:
+        score:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
     LeaderboardResponse:
       type: object
       required: [entries, currentUser, limit, offset]
@@ -255,6 +265,42 @@ paths:
                     type: string
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /v1/vk/endless-score:
+    post:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EndlessScoreRequest"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Endless score submitted to VK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, score]
+                properties:
+                  ok:
+                    type: boolean
+                  score:
+                    type: integer
+                    format: int64
+                    minimum: 0
+        "400":
+          description: Invalid score
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          description: VK API request failed
+        "503":
+          description: VK API is not configured
   /v1/vk/payments/callback:
     post:
       x-yc-apigateway-integration:

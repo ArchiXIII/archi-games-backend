@@ -43,6 +43,11 @@ function router(overrides = {}) {
       async ack(gameId, platform, userId, body) {
         return body.eventId;
       }
+    },
+    vkApiService: {
+      async submitEndlessScore(userId, score) {
+        return { userId, score };
+      }
     }
   });
 }
@@ -104,6 +109,45 @@ test('leaderboard and purchase event routes use VK identity', async () => {
   assert.equal(leaderboard.statusCode, 200);
   assert.equal(JSON.parse(leaderboard.body).board, 'xp');
   assert.deepEqual(JSON.parse(pending.body), { events: [] });
+});
+
+test('endless score route uses VK identity and returns the submitted score', async () => {
+  let submitted;
+  const route = createRouter({
+    config: {
+      ...loadConfig({ NODE_ENV: 'test' }),
+      vkAppId: '42',
+      vkAppSecret: 'secret'
+    },
+    vkApiService: {
+      async submitEndlessScore(userId, score) {
+        submitted = { userId, score };
+      }
+    }
+  });
+  const response = await route({
+    httpMethod: 'POST',
+    path: '/v1/vk/endless-score',
+    headers: authHeaders('application/json'),
+    body: JSON.stringify({ score: 24685 })
+  });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), { ok: true, score: 24685 });
+  assert.deepEqual(submitted, { userId: '123', score: 24685 });
+});
+
+test('endless score route rejects invalid scores', async () => {
+  const route = router();
+  for (const score of [-1, 1.5, '10', null]) {
+    const response = await route({
+      httpMethod: 'POST',
+      path: '/v1/vk/endless-score',
+      headers: authHeaders('application/json'),
+      body: JSON.stringify({ score })
+    });
+    assert.equal(response.statusCode, 400);
+    assert.equal(JSON.parse(response.body).error.code, 'INVALID_REQUEST');
+  }
 });
 
 test('CORS is returned only for allowlisted origins', async () => {

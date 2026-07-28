@@ -24,6 +24,7 @@
 - детерминированные grant/refund event ID по order ID;
 - серверный каталог четырёх актуальных VK-товаров;
 - подготовленная внутренняя обработка grant/refund;
+- тихая отправка результата бесконечного режима через VK `secure.addAppEvent`;
 - отключённый до получения точного контракта VK callback с ответом 501;
 - миграции YDB без удаления существующих данных;
 - минимальная production ZIP-сборка для Cloud Functions;
@@ -37,6 +38,7 @@
 - `GET /v1/leaderboards/xp`
 - `GET /v1/purchase-events/pending`
 - `POST /v1/purchase-events/ack`
+- `POST /v1/vk/endless-score`
 - `POST /v1/vk/payments/callback`
 
 ## Данные
