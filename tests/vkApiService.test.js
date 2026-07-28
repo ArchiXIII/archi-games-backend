@@ -26,22 +26,69 @@ test('VK API receives the trusted user, points activity and configured version',
   });
 });
 
-test('VK API errors are converted to a safe gateway error', async () => {
+test('VK API errors are safely logged and returned with VK details', async () => {
+  const warnings = [];
   const service = new VkApiService({
     vkServiceToken: 'secret-service-token',
     vkApiVersion: '5.199'
   }, async () => ({
     ok: true,
     async json() {
-      return { error: { error_code: 5, error_msg: 'token secret-service-token' } };
+      return {
+        error: {
+          error_code: 5,
+          error_msg: 'Authorization failed: access_token=secret-service-token user_id=123 activity_id=2 value=1'
+        }
+      };
     }
-  }));
+  }), {
+    warn(entry) {
+      warnings.push(entry);
+    }
+  });
   await assert.rejects(
     service.submitEndlessScore('123', 1),
     (cause) => cause.statusCode === 502 &&
       cause.code === 'VK_API_ERROR' &&
-      !cause.message.includes('secret-service-token')
+      cause.message ===
+        'VK API error 5: Authorization failed: access_token=[REDACTED] user_id=[REDACTED] activity_id=[REDACTED] value=[REDACTED]'
   );
+  assert.deepEqual(warnings, [{
+    event: 'vk_api_error',
+    method: 'secure.addAppEvent',
+    vkErrorCode: 5,
+    vkErrorMessage:
+      'Authorization failed: access_token=[REDACTED] user_id=[REDACTED] activity_id=[REDACTED] value=[REDACTED]'
+  }]);
+  assert.equal(JSON.stringify(warnings).includes('secret-service-token'), false);
+  assert.equal(JSON.stringify(warnings).includes('123'), false);
+});
+
+test('malformed VK error details use safe fallbacks', async () => {
+  const warnings = [];
+  const service = new VkApiService({
+    vkServiceToken: 'token',
+    vkApiVersion: '5.199'
+  }, async () => ({
+    ok: true,
+    async json() {
+      return { error: { error_code: {}, error_msg: null } };
+    }
+  }), {
+    warn(entry) {
+      warnings.push(entry);
+    }
+  });
+  await assert.rejects(
+    service.submitEndlessScore('123', 1),
+    (cause) => cause.message === 'VK API error unknown: Unknown VK API error'
+  );
+  assert.deepEqual(warnings[0], {
+    event: 'vk_api_error',
+    method: 'secure.addAppEvent',
+    vkErrorCode: 'unknown',
+    vkErrorMessage: 'Unknown VK API error'
+  });
 });
 
 test('VK API network and malformed responses are handled', async (context) => {
@@ -54,7 +101,23 @@ test('VK API network and malformed responses are handled', async (context) => {
     });
     await assert.rejects(
       service.submitEndlessScore('123', 1),
-      (cause) => cause.statusCode === 502 && cause.code === 'VK_API_ERROR'
+      (cause) => cause.statusCode === 502 &&
+        cause.code === 'VK_API_ERROR' &&
+        cause.message === 'VK API request failed'
+    );
+  });
+  await context.test('timeout', async () => {
+    const service = new VkApiService({
+      vkServiceToken: 'token',
+      vkApiVersion: '5.199'
+    }, async () => {
+      throw new DOMException('timed out', 'TimeoutError');
+    });
+    await assert.rejects(
+      service.submitEndlessScore('123', 1),
+      (cause) => cause.statusCode === 502 &&
+        cause.code === 'VK_API_ERROR' &&
+        cause.message === 'VK API request failed'
     );
   });
   await context.test('malformed response', async () => {
@@ -69,7 +132,9 @@ test('VK API network and malformed responses are handled', async (context) => {
     }));
     await assert.rejects(
       service.submitEndlessScore('123', 1),
-      (cause) => cause.statusCode === 502 && cause.code === 'VK_API_ERROR'
+      (cause) => cause.statusCode === 502 &&
+        cause.code === 'VK_API_ERROR' &&
+        cause.message === 'VK API request failed'
     );
   });
 });
