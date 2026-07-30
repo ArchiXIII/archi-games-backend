@@ -1,8 +1,8 @@
 # Archi Games Backend
 
-Production-ready serverless backend для HTML5-игр Archi Games. Текущая конфигурация обслуживает Crystal Match на VK через Node.js 22, Yandex Cloud Functions, API Gateway и YDB Serverless.
+Production-ready serverless backend для HTML5-игр Archi Games. Текущая конфигурация обслуживает Crystal Match на VK и Одноклассниках через Node.js 22, Yandex Cloud Functions, API Gateway и YDB Serverless.
 
-Обычный прогресс и баланс монет backend не хранит. Они остаются в VK Storage и localStorage клиента. Backend хранит только итоговые показатели рейтингов, заказы и очередь событий покупок.
+Обычный прогресс и баланс монет backend не хранит. Они остаются в хранилище платформы и localStorage клиента. Backend хранит только итоговые показатели рейтингов, заказы и очередь событий покупок.
 
 ## API
 
@@ -15,8 +15,14 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - `POST /v1/purchase-events/ack`
 - `POST /v1/vk/endless-score`
 - `POST /v1/vk/payments/callback`
+- `GET /v1/ok/payments/callback`
 
-Все клиентские маршруты требуют исходную подписанную строку VK в заголовке `X-VK-Launch-Params`. Сервер проверяет HMAC, `vk_app_id` и получает идентификатор пользователя только из `vk_user_id`. Callback платежей не использует клиентскую авторизацию и пока намеренно отвечает `501 VK_CALLBACK_NOT_CONFIGURED`.
+Общие клиентские маршруты принимают ровно один заголовок авторизации:
+
+- VK: `X-VK-Launch-Params`; сервер проверяет HMAC, `vk_app_id` и получает пользователя из `vk_user_id`;
+- Одноклассники: `X-OK-Launch-Params`; сервер проверяет `auth_sig`, `authorized=1`, `application_key` и получает пользователя из `logged_user_id`.
+
+Одновременная передача заголовков VK и OK отклоняется. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются. VK callback пока отвечает `501 VK_CALLBACK_NOT_CONFIGURED`.
 
 ### Рейтинги
 
@@ -63,6 +69,23 @@ ACK принимает `eventId`. Повторный ACK безопасен. Ч�
 
 Точный внешний протокол VK Payments не выдуман и не включён. После получения официального callback-контракта адаптер должен проверить запрос VK и вызвать уже подготовленные `PurchaseService.grant` или `PurchaseService.refund`.
 
+### Покупки Одноклассников
+
+В настройках приложения OK укажите callback:
+
+`https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net/v1/ok/payments/callback`
+
+OK вызывает callback методом GET. Backend проверяет MD5-подпись всех параметров, `method=callbacks.payment`, `application_key`, пользователя, `transaction_id`, товар, валюту и точную сумму. Успешный запрос создаёт заказ и событие `grant` с платформой `ok`. Повторный callback с тем же `transaction_id` возвращает успех без повторного начисления.
+
+Каталог OK:
+
+- `coins_10000` → 10000 монет за 5 OK
+- `coins_25000` → 25000 монет за 10 OK
+- `coins_60000` → 60000 монет за 20 OK
+- `coins_150000` → 150000 монет за 45 OK
+
+Успешный callback возвращает JSON `true`. Ошибка подписи возвращает `Invocation-error: 104`, неверное приложение, товар или сумма — `Invocation-error: 1001`.
+
 ### Бесконечный режим VK
 
 `POST /v1/vk/endless-score` принимает единственное поле `score` — неотрицательное безопасное целое. Идентификатор пользователя берётся только из проверенных `X-VK-Launch-Params`. Backend вызывает `secure.addAppEvent` с `activity_id=2`, сервисным токеном и настроенной версией VK API. Токен передаётся только в теле server-to-server запроса, не возвращается клиенту и не записывается в логи.
@@ -80,6 +103,9 @@ ACK принимает `eventId`. Повторный ACK безопасен. Ч�
 | `VK_SERVICE_TOKEN` | сервисный токен приложения для server-to-server вызовов VK API |
 | `VK_API_VERSION` | версия VK API, по умолчанию `5.199` |
 | `VK_CALLBACK_SECRET` | будущий секрет точного VK callback |
+| `OK_APP_KEY` | публичный ключ приложения Одноклассников для проверки launch params и callback |
+| `OK_APP_SECRET` | секретный ключ приложения Одноклассников для MD5-подписей |
+| `GAME_ID` | внутренний ID игры, по умолчанию `crystal-match` |
 | `ALLOWED_ORIGINS` | разрешённые origin через запятую |
 | `NODE_ENV` | `production` |
 
@@ -137,7 +163,7 @@ ACK принимает `eventId`. Повторный ACK безопасен. Ч�
 - timeout: 5 секунд
 - service account: `archi-games-backend-sa`
 
-В `openapi.yaml` сохранены текущие `function_id`, `service_account_id` и URL API Gateway.
+В `openapi.yaml` сохранены текущие `function_id` и URL API Gateway. `service_account_id` в спецификации отсутствует, функция вызывается публично.
 
 ## Добавление игр
 

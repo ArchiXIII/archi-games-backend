@@ -10,6 +10,7 @@ const { LeaderboardService } = require('./src/services/leaderboardService');
 const { PurchaseService } = require('./src/services/purchaseService');
 const { PurchaseEventsService } = require('./src/services/purchaseEventsService');
 const { VkApiService } = require('./src/services/vkApiService');
+const { OkPaymentsService } = require('./src/services/okPaymentsService');
 const { createRouter } = require('./src/router');
 
 const config = loadConfig();
@@ -21,6 +22,7 @@ const leaderboardService = new LeaderboardService(leaderboardRepository);
 const purchaseService = new PurchaseService(productsService, ordersRepository);
 const purchaseEventsService = new PurchaseEventsService(purchaseEventsRepository);
 const vkApiService = new VkApiService(config);
+const okPaymentsService = new OkPaymentsService(config, purchaseService);
 
 if (config.ydbEndpoint && config.ydbDatabase) getDriver(config);
 
@@ -29,7 +31,8 @@ const handler = createRouter({
   leaderboardService,
   purchaseService,
   purchaseEventsService,
-  vkApiService
+  vkApiService,
+  okPaymentsService
 });
 
 module.exports = { handler };

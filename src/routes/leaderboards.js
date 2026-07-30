@@ -5,7 +5,7 @@ const { json } = require('../response');
 async function syncLeaderboardRoute(context) {
   const result = await context.leaderboardService.sync(
     context.config.gameId,
-    context.config.platform,
+    context.auth.platform,
     context.auth.userId,
     context.body
   );
@@ -15,7 +15,7 @@ async function syncLeaderboardRoute(context) {
 async function starsLeaderboardRoute(context) {
   const result = await context.leaderboardService.list(
     context.config.gameId,
-    context.config.platform,
+    context.auth.platform,
     context.auth.userId,
     context.event.queryStringParameters
   );

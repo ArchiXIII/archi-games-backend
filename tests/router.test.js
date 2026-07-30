@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 const { createRouter } = require('../src/router');
 const { loadConfig } = require('../src/config');
 const { createSignature } = require('../src/auth/vkLaunchParams');
+const { createOkAuthSignature } = require('../src/auth/okLaunchParams');
+const { OkCallbackError } = require('../src/services/okPaymentsService');
 
 function authHeaders(contentType) {
   const params = new URLSearchParams({
@@ -19,11 +21,27 @@ function authHeaders(contentType) {
   };
 }
 
+function okAuthHeaders(contentType) {
+  const params = new URLSearchParams({
+    application_key: 'ok-public',
+    authorized: '1',
+    logged_user_id: '456',
+    session_key: 'ok-session'
+  });
+  params.set('auth_sig', createOkAuthSignature('456', 'ok-session', 'ok-secret'));
+  return {
+    ...(contentType ? { 'content-type': contentType } : {}),
+    'x-ok-launch-params': params.toString()
+  };
+}
+
 function router(overrides = {}) {
   const config = {
     ...loadConfig({ NODE_ENV: 'test', ALLOWED_ORIGINS: 'https://game.example' }),
     vkAppId: '42',
     vkAppSecret: 'secret',
+    okAppKey: 'ok-public',
+    okAppSecret: 'ok-secret',
     ...overrides
   };
   return createRouter({
@@ -47,6 +65,11 @@ function router(overrides = {}) {
     vkApiService: {
       async submitEndlessScore(userId, score) {
         return { userId, score };
+      }
+    },
+    okPaymentsService: {
+      async process() {
+        return { created: true };
       }
     }
   });
@@ -111,6 +134,47 @@ test('stars and purchase event routes use VK identity', async () => {
   assert.deepEqual(JSON.parse(pending.body), { events: [] });
 });
 
+test('leaderboard routes accept OK identity and keep platform separated', async () => {
+  let syncCall;
+  const route = createRouter({
+    config: {
+      ...loadConfig({ NODE_ENV: 'test' }),
+      vkAppId: '42',
+      vkAppSecret: 'secret',
+      okAppKey: 'ok-public',
+      okAppSecret: 'ok-secret'
+    },
+    leaderboardService: {
+      async sync(...args) {
+        syncCall = args;
+        return { totalStars: 10 };
+      }
+    }
+  });
+  const response = await route({
+    httpMethod: 'POST',
+    path: '/v1/leaderboards/sync',
+    headers: okAuthHeaders('application/json'),
+    body: JSON.stringify({ totalStars: 10, playerName: 'Alex' })
+  });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(syncCall, [
+    'crystal-match',
+    'ok',
+    '456',
+    { totalStars: 10, playerName: 'Alex' }
+  ]);
+});
+
+test('client routes reject ambiguous VK and OK credentials', async () => {
+  const response = await router()({
+    httpMethod: 'GET',
+    path: '/v1/leaderboards/stars',
+    headers: { ...authHeaders(), ...okAuthHeaders() }
+  });
+  assert.equal(response.statusCode, 401);
+});
+
 test('XP leaderboard route is disabled', async () => {
   const response = await router()({
     httpMethod: 'GET',
@@ -160,6 +224,60 @@ test('endless score route rejects invalid scores', async () => {
   }
 });
 
+test('VK-only endless score route rejects OK credentials', async () => {
+  const response = await router()({
+    httpMethod: 'POST',
+    path: '/v1/vk/endless-score',
+    headers: okAuthHeaders('application/json'),
+    body: JSON.stringify({ score: 10 })
+  });
+  assert.equal(response.statusCode, 401);
+});
+
+test('OK payment callback returns the official JSON success response', async () => {
+  let received;
+  const route = createRouter({
+    config: loadConfig({ NODE_ENV: 'test' }),
+    okPaymentsService: {
+      async process(params) {
+        received = params;
+      }
+    }
+  });
+  const response = await route({
+    httpMethod: 'GET',
+    path: '/v1/ok/payments/callback',
+    queryStringParameters: { transaction_id: '1' }
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers['Content-Type'], 'application/json; charset=utf-8');
+  assert.equal(response.body, 'true');
+  assert.deepEqual(received, { transaction_id: '1' });
+});
+
+test('OK payment callback returns the official JSON error response', async () => {
+  const route = createRouter({
+    config: loadConfig({ NODE_ENV: 'test' }),
+    okPaymentsService: {
+      async process() {
+        throw new OkCallbackError(104, 'PARAM_SIGNATURE : Invalid signature');
+      }
+    }
+  });
+  const response = await route({
+    httpMethod: 'GET',
+    path: '/v1/ok/payments/callback',
+    queryStringParameters: {}
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.headers['Invocation-error'], '104');
+  assert.deepEqual(JSON.parse(response.body), {
+    error_code: 104,
+    error_msg: 'PARAM_SIGNATURE : Invalid signature',
+    error_data: null
+  });
+});
+
 test('CORS is returned only for allowlisted origins', async () => {
   const allowed = await router()({
     httpMethod: 'GET',
@@ -172,5 +290,6 @@ test('CORS is returned only for allowlisted origins', async () => {
     headers: { origin: 'https://evil.example' }
   });
   assert.equal(allowed.headers['Access-Control-Allow-Origin'], 'https://game.example');
+  assert.match(allowed.headers['Access-Control-Allow-Headers'], /X-OK-Launch-Params/);
   assert.equal(denied.headers['Access-Control-Allow-Origin'], undefined);
 });

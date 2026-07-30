@@ -29,12 +29,14 @@ class OrdersRepository {
            coins, status, granted, created_at, updated_at)
         SELECT $platform, $order_id, $game_id, $user_id, $product_id,
                $coins, "completed", true, CurrentUtcTimestamp(), CurrentUtcTimestamp()
+        FROM (VALUES (1)) AS seed(dummy)
         WHERE $is_new;
         INSERT INTO purchase_events
           (event_id, platform, platform_order_id, event_type, payload_json,
            created_at, game_id, platform_user_id, coins_delta, delivered_at)
         SELECT $event_id, $platform, $order_id, "grant", $payload,
                CurrentUtcTimestamp(), $game_id, $user_id, $coins, NULL
+        FROM (VALUES (1)) AS seed(dummy)
         WHERE $is_new;
         SELECT $is_new AS created;
       `, {
@@ -104,6 +106,7 @@ class OrdersRepository {
            created_at, game_id, platform_user_id, coins_delta, delivered_at)
         SELECT $event_id, $platform, $order_id, "refund", $payload,
                CurrentUtcTimestamp(), $game_id, $user_id, $coins_delta, NULL
+        FROM (VALUES (1)) AS seed(dummy)
         WHERE $is_new;
         SELECT $is_new AS created;
       `, {

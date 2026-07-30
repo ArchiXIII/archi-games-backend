@@ -78,6 +78,30 @@ test('client cannot choose coins amount', async () => {
   assert.equal(orders.get('order-2').coins, 10000);
 });
 
+test('OK purchase requires the catalog price', async () => {
+  const { service, orders } = setup();
+  await assert.rejects(
+    service.grant({
+      gameId: 'crystal-match',
+      platform: 'ok',
+      orderId: 'transaction-1',
+      userId: '123',
+      productId: 'coins_10000',
+      amount: 1
+    }),
+    (cause) => cause.code === 'INVALID_PAYMENT'
+  );
+  await service.grant({
+    gameId: 'crystal-match',
+    platform: 'ok',
+    orderId: 'transaction-1',
+    userId: '123',
+    productId: 'coins_10000',
+    amount: 5
+  });
+  assert.equal(orders.get('transaction-1').coins, 10000);
+});
+
 test('refund uses the server catalog and deterministic event ID', async () => {
   const { service, orders } = setup();
   await service.grant({

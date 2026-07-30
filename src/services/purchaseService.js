@@ -12,12 +12,17 @@ class PurchaseService {
   }
 
   async grant(input) {
-    if (!input || !ID_PATTERN.test(input.orderId || '') ||
+    if (!input || !ID_PATTERN.test(input.platform || '') ||
+        !ID_PATTERN.test(input.orderId || '') ||
         !/^\d{1,20}$/.test(input.userId || '') ||
         !ID_PATTERN.test(input.productId || '')) {
       throw new HttpError(400, 'INVALID_REQUEST', 'Invalid request');
     }
     const product = this.productsService.get(input.gameId, input.productId);
+    if (input.platform === 'ok' &&
+        (!Number.isSafeInteger(input.amount) || input.amount !== product.okAmount)) {
+      throw new HttpError(400, 'INVALID_PAYMENT', 'Invalid payment');
+    }
     return this.ordersRepository.createGrant({
       platform: input.platform,
       orderId: input.orderId,

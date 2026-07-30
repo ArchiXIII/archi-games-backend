@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Archi Games API
-  version: 1.3.0
+  version: 1.4.0
 servers:
   - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
 x-yc-apigateway:
@@ -14,13 +14,28 @@ x-yc-apigateway:
     allowedHeaders:
       - Content-Type
       - X-VK-Launch-Params
+      - X-OK-Launch-Params
     maxAge: 3600
 components:
   parameters:
     VkLaunchParams:
       name: X-VK-Launch-Params
       in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 8192
+    VkLaunchParamsRequired:
+      name: X-VK-Launch-Params
+      in: header
       required: true
+      schema:
+        type: string
+        maxLength: 8192
+    OkLaunchParams:
+      name: X-OK-Launch-Params
+      in: header
+      required: false
       schema:
         type: string
         maxLength: 8192
@@ -99,6 +114,7 @@ components:
           items:
             $ref: "#/components/schemas/LeaderboardEntry"
         currentUser:
+          type: object
           nullable: true
           allOf:
             - $ref: "#/components/schemas/LeaderboardEntry"
@@ -116,7 +132,7 @@ components:
             $ref: "#/components/schemas/PurchaseEvent"
   responses:
     Unauthorized:
-      description: Invalid or missing VK launch parameters
+      description: Invalid, missing or ambiguous platform launch parameters
 paths:
   /health:
     get:
@@ -130,6 +146,7 @@ paths:
     post:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
+        - $ref: "#/components/parameters/OkLaunchParams"
       requestBody:
         required: true
         content:
@@ -159,6 +176,7 @@ paths:
     get:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
+        - $ref: "#/components/parameters/OkLaunchParams"
         - name: limit
           in: query
           schema:
@@ -189,6 +207,7 @@ paths:
     get:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
+        - $ref: "#/components/parameters/OkLaunchParams"
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
@@ -205,6 +224,7 @@ paths:
     post:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
+        - $ref: "#/components/parameters/OkLaunchParams"
       requestBody:
         required: true
         content:
@@ -232,7 +252,7 @@ paths:
   /v1/vk/endless-score:
     post:
       parameters:
-        - $ref: "#/components/parameters/VkLaunchParams"
+        - $ref: "#/components/parameters/VkLaunchParamsRequired"
       requestBody:
         required: true
         content:
@@ -273,3 +293,74 @@ paths:
       responses:
         "501":
           description: Adapter is disabled until the exact VK callback contract is configured
+  /v1/ok/payments/callback:
+    get:
+      parameters:
+        - name: sig
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^[a-fA-F0-9]{32}$"
+        - name: uid
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: transaction_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: transaction_time
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: product_code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: amount
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+        - name: method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [callbacks.payment]
+        - name: application_key
+          in: query
+          required: true
+          schema:
+            type: string
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Official OK payment validation response
+          headers:
+            Invocation-error:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: boolean
+                  - type: object
+                    required: [error_code, error_msg, error_data]
+                    properties:
+                      error_code:
+                        type: integer
+                      error_msg:
+                        type: string
+                      error_data:
+                        type: object
+                        nullable: true

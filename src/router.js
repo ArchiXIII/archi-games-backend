@@ -4,20 +4,23 @@ const crypto = require('node:crypto');
 const logger = require('./logger');
 const { HttpError, error } = require('./response');
 const { verifyVkLaunchParams } = require('./auth/vkLaunchParams');
+const { verifyOkLaunchParams } = require('./auth/okLaunchParams');
 const { healthRoute } = require('./routes/health');
 const { syncLeaderboardRoute, starsLeaderboardRoute } = require('./routes/leaderboards');
 const { pendingPurchaseEventsRoute, ackPurchaseEventRoute } = require('./routes/purchaseEvents');
 const { vkEndlessScoreRoute } = require('./routes/vkEndlessScore');
 const { vkPaymentsCallbackRoute } = require('./routes/vkPaymentsCallback');
+const { okPaymentsCallbackRoute } = require('./routes/okPaymentsCallback');
 
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
-  ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: true, json: true }],
-  ['GET /v1/leaderboards/stars', { handler: starsLeaderboardRoute, auth: true }],
-  ['GET /v1/purchase-events/pending', { handler: pendingPurchaseEventsRoute, auth: true }],
-  ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: true, json: true }],
-  ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: true, json: true }],
-  ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute, json: true }]
+  ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: 'client', json: true }],
+  ['GET /v1/leaderboards/stars', { handler: starsLeaderboardRoute, auth: 'client' }],
+  ['GET /v1/purchase-events/pending', { handler: pendingPurchaseEventsRoute, auth: 'client' }],
+  ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: 'client', json: true }],
+  ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: 'vk', json: true }],
+  ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute, json: true }],
+  ['GET /v1/ok/payments/callback', { handler: okPaymentsCallbackRoute }]
 ]);
 
 function normalizeHeaders(headers) {
@@ -58,8 +61,21 @@ function parseBody(event, headers, maxBytes) {
   }
 }
 
-function launchParams(headers) {
-  return headers['x-vk-launch-params'] || '';
+function authenticate(headers, config, platform) {
+  const vkParams = headers['x-vk-launch-params'] || '';
+  const okParams = headers['x-ok-launch-params'] || '';
+  if (platform === 'vk') {
+    const auth = verifyVkLaunchParams(vkParams, config.vkAppSecret, config.vkAppId);
+    return { ...auth, platform: 'vk' };
+  }
+  if ((!vkParams && !okParams) || (vkParams && okParams)) {
+    throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
+  }
+  if (vkParams) {
+    const auth = verifyVkLaunchParams(vkParams, config.vkAppSecret, config.vkAppId);
+    return { ...auth, platform: 'vk' };
+  }
+  return verifyOkLaunchParams(okParams, config.okAppSecret, config.okAppKey);
 }
 
 function corsHeaders(origin, allowedOrigins) {
@@ -67,7 +83,7 @@ function corsHeaders(origin, allowedOrigins) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-VK-Launch-Params,X-Request-Id',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-VK-Launch-Params,X-OK-Launch-Params,X-Request-Id',
     'Access-Control-Max-Age': '600',
     Vary: 'Origin'
   };
@@ -96,13 +112,7 @@ function createRouter(dependencies) {
     try {
       const context = { ...dependencies, requestId: id, event, headers };
       if (routeConfig.json) context.body = parseBody(event, headers, dependencies.config.maxBodyBytes);
-      if (routeConfig.auth) {
-        context.auth = verifyVkLaunchParams(
-          launchParams(headers),
-          dependencies.config.vkAppSecret,
-          dependencies.config.vkAppId
-        );
-      }
+      if (routeConfig.auth) context.auth = authenticate(headers, dependencies.config, routeConfig.auth);
       const response = await routeConfig.handler(context);
       response.headers = { ...response.headers, ...responseHeaders };
       logger.info({ requestId: id, method, path, statusCode: response.statusCode });
@@ -125,4 +135,4 @@ function createRouter(dependencies) {
   };
 }
 
-module.exports = { createRouter, parseBody, normalizeHeaders, corsHeaders };
+module.exports = { createRouter, parseBody, normalizeHeaders, corsHeaders, authenticate };
