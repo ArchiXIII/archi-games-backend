@@ -14,28 +14,13 @@ x-yc-apigateway:
     allowedHeaders:
       - Content-Type
       - X-VK-Launch-Params
-      - X-OK-Launch-Params
     maxAge: 3600
 components:
   parameters:
     VkLaunchParams:
       name: X-VK-Launch-Params
       in: header
-      required: false
-      schema:
-        type: string
-        maxLength: 8192
-    VkLaunchParamsRequired:
-      name: X-VK-Launch-Params
-      in: header
       required: true
-      schema:
-        type: string
-        maxLength: 8192
-    OkLaunchParams:
-      name: X-OK-Launch-Params
-      in: header
-      required: false
       schema:
         type: string
         maxLength: 8192
@@ -146,7 +131,6 @@ paths:
     post:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
-        - $ref: "#/components/parameters/OkLaunchParams"
       requestBody:
         required: true
         content:
@@ -176,7 +160,6 @@ paths:
     get:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
-        - $ref: "#/components/parameters/OkLaunchParams"
         - name: limit
           in: query
           schema:
@@ -207,7 +190,6 @@ paths:
     get:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
-        - $ref: "#/components/parameters/OkLaunchParams"
       x-yc-apigateway-integration:
         type: cloud_functions
         function_id: d4eb6i2ivnhumclg3ti9
@@ -224,7 +206,6 @@ paths:
     post:
       parameters:
         - $ref: "#/components/parameters/VkLaunchParams"
-        - $ref: "#/components/parameters/OkLaunchParams"
       requestBody:
         required: true
         content:
@@ -252,7 +233,7 @@ paths:
   /v1/vk/endless-score:
     post:
       parameters:
-        - $ref: "#/components/parameters/VkLaunchParamsRequired"
+        - $ref: "#/components/parameters/VkLaunchParams"
       requestBody:
         required: true
         content:

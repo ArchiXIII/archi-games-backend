@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const logger = require('./logger');
 const { HttpError, error } = require('./response');
 const { verifyVkLaunchParams } = require('./auth/vkLaunchParams');
-const { verifyOkLaunchParams } = require('./auth/okLaunchParams');
+const { verifyOkLaunchParams, isOkLaunchParams } = require('./auth/okLaunchParams');
 const { healthRoute } = require('./routes/health');
 const { syncLeaderboardRoute, starsLeaderboardRoute } = require('./routes/leaderboards');
 const { pendingPurchaseEventsRoute, ackPurchaseEventRoute } = require('./routes/purchaseEvents');
@@ -62,20 +62,23 @@ function parseBody(event, headers, maxBytes) {
 }
 
 function authenticate(headers, config, platform) {
-  const vkParams = headers['x-vk-launch-params'] || '';
-  const okParams = headers['x-ok-launch-params'] || '';
+  const raw = headers['x-vk-launch-params'] || '';
+  const okClient = isOkLaunchParams(raw);
   if (platform === 'vk') {
-    const auth = verifyVkLaunchParams(vkParams, config.vkAppSecret, config.vkAppId);
+    if (okClient) throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
+    const auth = verifyVkLaunchParams(raw, config.vkAppSecret, config.vkAppId);
     return { ...auth, platform: 'vk' };
   }
-  if ((!vkParams && !okParams) || (vkParams && okParams)) {
-    throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
-  }
-  if (vkParams) {
-    const auth = verifyVkLaunchParams(vkParams, config.vkAppSecret, config.vkAppId);
+  if (!okClient) {
+    const auth = verifyVkLaunchParams(raw, config.vkAppSecret, config.vkAppId);
     return { ...auth, platform: 'vk' };
   }
-  return verifyOkLaunchParams(okParams, config.okAppSecret, config.okAppKey);
+  return verifyOkLaunchParams(
+    raw,
+    config.vkAppSecret,
+    config.vkAppId,
+    config.okAppId
+  );
 }
 
 function corsHeaders(origin, allowedOrigins) {
@@ -83,7 +86,7 @@ function corsHeaders(origin, allowedOrigins) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-VK-Launch-Params,X-OK-Launch-Params,X-Request-Id',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-VK-Launch-Params,X-Request-Id',
     'Access-Control-Max-Age': '600',
     Vary: 'Origin'
   };
