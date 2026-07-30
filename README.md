@@ -15,6 +15,8 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - `POST /v1/purchase-events/ack`
 - `POST /v1/vk/endless-score`
 - `POST /v1/vk/payments/callback`
+- `POST /v1/ok/endless-score`
+- `GET /v1/ok/leaderboards/endless?limit=20&offset=0`
 - `GET /v1/ok/payments/callback`
 
 Все клиентские маршруты принимают исходную подписанную строку в заголовке `X-VK-Launch-Params`.
@@ -86,6 +88,14 @@ OK вызывает callback методом GET. Backend проверяет MD5-
 
 Успешный callback возвращает JSON `true`. Ошибка подписи возвращает `Invocation-error: 104`, неверное приложение, товар или сумма — `Invocation-error: 1001`.
 
+### Бесконечный рейтинг Одноклассников
+
+`POST /v1/ok/endless-score` принимает обязательный неотрицательный целый `score` и необязательный `playerName`. Авторизация выполняется через signed launch params OK в `X-VK-Launch-Params`. Пользователь берётся только из проверенного `vk_ok_user_id`.
+
+Backend хранит лучший результат одного бесконечного забега. Меньшее или равное значение не уменьшает `best_score` и не изменяет дату рекорда. Имя очищается по тем же правилам, что имя рейтинга звёзд.
+
+`GET /v1/ok/leaderboards/endless` возвращает `entries`, `currentUser`, `limit` и `offset`. Записи содержат `rank`, `userId`, `playerName`, `score`, `bestScore`, `updatedAt` и `isCurrentUser`.
+
 ### Бесконечный режим VK
 
 `POST /v1/vk/endless-score` принимает единственное поле `score` — неотрицательное безопасное целое. Идентификатор пользователя берётся только из проверенных `X-VK-Launch-Params`. Backend вызывает `secure.addAppEvent` с `activity_id=2`, сервисным токеном и настроенной версией VK API. Токен передаётся только в теле server-to-server запроса, не возвращается клиенту и не записывается в логи.
@@ -125,7 +135,9 @@ OK вызывает callback методом GET. Backend проверяет MD5-
 
 ## Миграции YDB
 
-Для новой базы сначала применяется `migrations/001_initial_schema.sql`, затем `migrations/002_leaderboard_totals_and_purchase_delivery.sql`. Миграция 002:
+Для новой базы последовательно применяются миграции 001, 002 и `migrations/003_ok_endless_leaderboard.sql`. Миграция 003 создаёт отдельную таблицу `endless_leaderboard` и индекс `idx_endless_score`; ключ включает `game_id`, `platform` и `platform_user_id`.
+
+Миграция 002:
 
 - создаёт `leaderboard_totals` и два синхронных глобальных индекса;
 - добавляет в `purchase_events` поля `game_id`, `platform_user_id`, `coins_delta`, `delivered_at`;
@@ -133,6 +145,14 @@ OK вызывает callback методом GET. Backend проверяет MD5-
 - не удаляет и не изменяет существующие данные.
 
 Колонка `total_xp`, индекс `idx_leaderboard_xp` и существующие XP-данные сохранены как legacy для совместимости схемы, но runtime их не читает и не обновляет. При создании новой строки в обязательную legacy-колонку записывается нейтральный `0`.
+
+### Применение миграции 003 через YDB Query Editor
+
+1. Откройте базу `archi-games-db` в консоли Yandex Cloud.
+2. Создайте новый запрос в Query Editor.
+3. Скопируйте целиком `migrations/003_ok_endless_leaderboard.sql`.
+4. Выполните запрос один раз.
+5. Проверьте таблицу `endless_leaderboard` и глобальный индекс `idx_endless_score`.
 
 ### Применение миграции 002 через YDB Query Editor
 

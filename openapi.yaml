@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Archi Games API
-  version: 1.4.0
+  version: 1.5.0
 servers:
   - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
 x-yc-apigateway:
@@ -90,6 +90,60 @@ components:
           format: int64
           minimum: 0
           maximum: 9007199254740991
+    OkEndlessScoreRequest:
+      type: object
+      additionalProperties: false
+      required: [score]
+      properties:
+        score:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9007199254740991
+        playerName:
+          type: string
+          maxLength: 512
+    EndlessLeaderboardEntry:
+      type: object
+      required: [rank, userId, playerName, score, bestScore, updatedAt, isCurrentUser]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        userId:
+          type: string
+        playerName:
+          type: string
+        score:
+          type: integer
+          format: int64
+          minimum: 0
+        bestScore:
+          type: integer
+          format: int64
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+        isCurrentUser:
+          type: boolean
+    EndlessLeaderboardResponse:
+      type: object
+      required: [entries, currentUser, limit, offset]
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/EndlessLeaderboardEntry"
+        currentUser:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/EndlessLeaderboardEntry"
+        limit:
+          type: integer
+        offset:
+          type: integer
     LeaderboardResponse:
       type: object
       required: [entries, currentUser, limit, offset]
@@ -274,6 +328,68 @@ paths:
       responses:
         "501":
           description: Adapter is disabled until the exact VK callback contract is configured
+  /v1/ok/endless-score:
+    post:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OkEndlessScoreRequest"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: OK endless best score synchronized
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, bestScore]
+                properties:
+                  ok:
+                    type: boolean
+                  bestScore:
+                    type: integer
+                    format: int64
+                    minimum: 0
+        "400":
+          description: Invalid score or player name
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/ok/leaderboards/endless:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000000
+            default: 0
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: OK endless leaderboard and current user rank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EndlessLeaderboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /v1/ok/payments/callback:
     get:
       parameters:

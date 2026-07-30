@@ -74,6 +74,14 @@ function router(overrides = {}) {
       async process() {
         return { created: true };
       }
+    },
+    endlessLeaderboardService: {
+      async sync() {
+        return { bestScore: 24685 };
+      },
+      async list() {
+        return { entries: [], currentUser: null, limit: 20, offset: 0 };
+      }
     }
   });
 }
@@ -246,6 +254,71 @@ test('VK-only endless score route rejects OK credentials', async () => {
     body: JSON.stringify({ score: 10 })
   });
   assert.equal(response.statusCode, 401);
+});
+
+test('OK endless score route uses OK identity', async () => {
+  let call;
+  const route = createRouter({
+    config: {
+      ...loadConfig({ NODE_ENV: 'test' }),
+      okVkAppId: '99',
+      okAppId: '84',
+      okAppSecret: 'ok-secret'
+    },
+    endlessLeaderboardService: {
+      async sync(...args) {
+        call = args;
+        return { bestScore: 24685 };
+      }
+    }
+  });
+  const response = await route({
+    httpMethod: 'POST',
+    path: '/v1/ok/endless-score',
+    headers: okAuthHeaders('application/json'),
+    body: JSON.stringify({ score: 24685, playerName: 'Alex' })
+  });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), { ok: true, bestScore: 24685 });
+  assert.deepEqual(call, [
+    'crystal-match',
+    'ok',
+    '456',
+    { score: 24685, playerName: 'Alex' }
+  ]);
+});
+
+test('OK endless leaderboard route returns the table', async () => {
+  const response = await router()({
+    httpMethod: 'GET',
+    path: '/v1/ok/leaderboards/endless',
+    headers: okAuthHeaders(),
+    queryStringParameters: { limit: '20', offset: '0' }
+  });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), {
+    entries: [],
+    currentUser: null,
+    limit: 20,
+    offset: 0
+  });
+});
+
+test('OK endless routes reject ordinary VK credentials', async () => {
+  const route = router();
+  const submit = await route({
+    httpMethod: 'POST',
+    path: '/v1/ok/endless-score',
+    headers: authHeaders('application/json'),
+    body: JSON.stringify({ score: 10 })
+  });
+  const list = await route({
+    httpMethod: 'GET',
+    path: '/v1/ok/leaderboards/endless',
+    headers: authHeaders()
+  });
+  assert.equal(submit.statusCode, 401);
+  assert.equal(list.statusCode, 401);
 });
 
 test('OK payment callback returns the official JSON success response', async () => {

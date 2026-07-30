@@ -31,6 +31,7 @@
 - отключённый до получения точного контракта VK callback с ответом 501;
 - callback покупок OK с проверкой подписи, приложения, товара и суммы;
 - идемпотентное начисление покупок OK по `transaction_id`;
+- отдельный OK-рейтинг лучшего результата бесконечного забега;
 - миграции YDB без удаления существующих данных;
 - минимальная production ZIP-сборка для Cloud Functions;
 - OpenAPI для текущего API Gateway.
@@ -44,11 +45,14 @@
 - `POST /v1/purchase-events/ack`
 - `POST /v1/vk/endless-score`
 - `POST /v1/vk/payments/callback`
+- `POST /v1/ok/endless-score`
+- `GET /v1/ok/leaderboards/endless`
 - `GET /v1/ok/payments/callback`
 
 ## Данные
 
 - `leaderboard_totals` — итоговые звёзды по игре, платформе и пользователю; XP-поля остаются только как неиспользуемая legacy-схема;
+- `endless_leaderboard` — лучший результат бесконечного режима по игре, платформе и пользователю;
 - `orders` — уникальные заказы платформы;
 - `purchase_events` — события выдачи/возврата и состояние доставки;
 - `players` — legacy-таблица миграции 001, новые маршруты её не используют.
@@ -64,7 +68,7 @@
 
 ## Развёртывание
 
-1. Применить миграции 001 и 002 к `archi-games-db`.
+1. Применить миграции 001, 002 и 003 к `archi-games-db`.
 2. Задать переменные окружения и секреты в Cloud Function.
 3. Собрать `dist/archi-games-api.zip`.
 4. Создать версию функции Node.js 22 с `index.handler`.

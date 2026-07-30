@@ -11,6 +11,10 @@ const { pendingPurchaseEventsRoute, ackPurchaseEventRoute } = require('./routes/
 const { vkEndlessScoreRoute } = require('./routes/vkEndlessScore');
 const { vkPaymentsCallbackRoute } = require('./routes/vkPaymentsCallback');
 const { okPaymentsCallbackRoute } = require('./routes/okPaymentsCallback');
+const {
+  okEndlessScoreRoute,
+  okEndlessLeaderboardRoute
+} = require('./routes/okEndlessLeaderboard');
 
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
@@ -20,6 +24,8 @@ const ROUTES = new Map([
   ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: 'client', json: true }],
   ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: 'vk', json: true }],
   ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute, json: true }],
+  ['POST /v1/ok/endless-score', { handler: okEndlessScoreRoute, auth: 'ok', json: true }],
+  ['GET /v1/ok/leaderboards/endless', { handler: okEndlessLeaderboardRoute, auth: 'ok' }],
   ['GET /v1/ok/payments/callback', { handler: okPaymentsCallbackRoute }]
 ]);
 
@@ -68,6 +74,15 @@ function authenticate(headers, config, platform) {
     if (okClient) throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
     const auth = verifyVkLaunchParams(raw, config.vkAppSecret, config.vkAppId);
     return { ...auth, platform: 'vk' };
+  }
+  if (platform === 'ok') {
+    if (!okClient) throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
+    return verifyOkLaunchParams(
+      raw,
+      config.okAppSecret,
+      config.okVkAppId,
+      config.okAppId
+    );
   }
   if (!okClient) {
     const auth = verifyVkLaunchParams(raw, config.vkAppSecret, config.vkAppId);
