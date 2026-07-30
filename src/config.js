@@ -26,6 +26,7 @@ function loadConfig(env = process.env) {
     vkServiceToken: env.VK_SERVICE_TOKEN || '',
     vkApiVersion: env.VK_API_VERSION || '5.199',
     vkCallbackSecret: env.VK_CALLBACK_SECRET || '',
+    okVkAppId: env.OK_VK_APP_ID || '',
     okAppId: env.OK_APP_ID || '',
     okAppKey: env.OK_APP_KEY || '',
     okAppSecret: env.OK_APP_SECRET || '',

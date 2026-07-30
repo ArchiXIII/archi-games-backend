@@ -75,8 +75,8 @@ function authenticate(headers, config, platform) {
   }
   return verifyOkLaunchParams(
     raw,
-    config.vkAppSecret,
-    config.vkAppId,
+    config.okAppSecret,
+    config.okVkAppId,
     config.okAppId
   );
 }

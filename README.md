@@ -22,7 +22,7 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - Для обычного VK сервер проверяет HMAC, `vk_app_id` и получает пользователя из `vk_user_id`.
 - Для запуска в Одноклассниках сервер дополнительно требует `vk_client=ok`, проверяет `vk_ok_app_id` и получает пользователя только из `vk_ok_user_id`.
 
-Обе платформы используют существующую подпись VK Mini Apps и `VK_APP_SECRET`. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются. VK callback пока отвечает `501 VK_CALLBACK_NOT_CONFIGURED`.
+Обычный VK проверяется через `VK_APP_ID` и `VK_APP_SECRET`. Запуск OK проверяется отдельно через `OK_VK_APP_ID`, `OK_APP_SECRET` и `OK_APP_ID`. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются. VK callback пока отвечает `501 VK_CALLBACK_NOT_CONFIGURED`.
 
 ### Рейтинги
 
@@ -103,9 +103,10 @@ OK вызывает callback методом GET. Backend проверяет MD5-
 | `VK_SERVICE_TOKEN` | сервисный токен приложения для server-to-server вызовов VK API |
 | `VK_API_VERSION` | версия VK API, по умолчанию `5.199` |
 | `VK_CALLBACK_SECRET` | будущий секрет точного VK callback |
+| `OK_VK_APP_ID` | ожидаемый `vk_app_id` отдельного VK-приложения для запуска OK |
 | `OK_APP_ID` | ожидаемый `vk_ok_app_id` в подписанных launch params |
 | `OK_APP_KEY` | публичный ключ приложения Одноклассников для проверки callback |
-| `OK_APP_SECRET` | секретный ключ приложения Одноклассников для MD5-подписей |
+| `OK_APP_SECRET` | секрет для проверки `sign` запуска OK и MD5-подписи callback |
 | `GAME_ID` | внутренний ID игры, по умолчанию `crystal-match` |
 | `ALLOWED_ORIGINS` | разрешённые origin через запятую |
 | `NODE_ENV` | `production` |

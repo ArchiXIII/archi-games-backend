@@ -13,11 +13,11 @@ function isOkLaunchParams(raw) {
   return launchParams(raw).get('vk_client') === 'ok';
 }
 
-function verifyOkLaunchParams(raw, secret, expectedVkAppId, expectedOkAppId) {
+function verifyOkLaunchParams(raw, secret, expectedOkVkAppId, expectedOkAppId) {
   if (!expectedOkAppId) {
     throw new HttpError(503, 'SERVICE_UNAVAILABLE', 'Service unavailable');
   }
-  verifyVkLaunchParams(raw, secret, expectedVkAppId);
+  verifyVkLaunchParams(raw, secret, expectedOkVkAppId);
   const params = launchParams(raw);
   const userId = params.get('vk_ok_user_id');
   if (params.get('vk_client') !== 'ok' ||

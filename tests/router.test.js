@@ -23,13 +23,13 @@ function authHeaders(contentType) {
 function okAuthHeaders(contentType) {
   const params = new URLSearchParams({
     vk_client: 'ok',
-    vk_app_id: '42',
+    vk_app_id: '99',
     vk_ok_app_id: '84',
     vk_ok_user_id: '456',
     vk_user_id: '123',
     vk_ts: '1753878896'
   });
-  params.set('sign', createSignature(params, 'secret'));
+  params.set('sign', createSignature(params, 'ok-secret'));
   return {
     ...(contentType ? { 'content-type': contentType } : {}),
     'x-vk-launch-params': params.toString()
@@ -41,6 +41,7 @@ function router(overrides = {}) {
     ...loadConfig({ NODE_ENV: 'test', ALLOWED_ORIGINS: 'https://game.example' }),
     vkAppId: '42',
     vkAppSecret: 'secret',
+    okVkAppId: '99',
     okAppId: '84',
     okAppKey: 'ok-public',
     okAppSecret: 'ok-secret',
@@ -143,6 +144,7 @@ test('leaderboard routes accept OK identity and keep platform separated', async 
       ...loadConfig({ NODE_ENV: 'test' }),
       vkAppId: '42',
       vkAppSecret: 'secret',
+      okVkAppId: '99',
       okAppId: '84',
       okAppKey: 'ok-public',
       okAppSecret: 'ok-secret'
@@ -172,13 +174,13 @@ test('leaderboard routes accept OK identity and keep platform separated', async 
 test('OK launch params reject a mismatched OK app ID', async () => {
   const params = new URLSearchParams({
     vk_client: 'ok',
-    vk_app_id: '42',
+    vk_app_id: '99',
     vk_ok_app_id: '85',
     vk_ok_user_id: '456',
     vk_user_id: '123',
     vk_ts: '1753878896'
   });
-  params.set('sign', createSignature(params, 'secret'));
+  params.set('sign', createSignature(params, 'ok-secret'));
   const response = await router()({
     httpMethod: 'GET',
     path: '/v1/leaderboards/stars',
