@@ -82,6 +82,15 @@ test('OK get_item accepts the linked OK application ID', async () => {
   });
 });
 
+test('VK application wins when linked VK and OK IDs are equal', () => {
+  const { service } = setup();
+  service.config.okVkAppId = service.config.vkAppId;
+  assert.deepEqual(service.resolvePlatform(service.config.vkAppId), {
+    name: 'vk',
+    secret: 'vk-secret'
+  });
+});
+
 test('OK chargeable order creates a confirmed grant', async () => {
   const { service, calls } = setup();
   const result = await service.process(signed({

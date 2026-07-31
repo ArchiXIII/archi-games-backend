@@ -35,6 +35,9 @@ class VkPaymentsService {
   }
 
   resolvePlatform(appId) {
+    if (appId && appId === this.config.vkAppId) {
+      return { name: 'vk', secret: this.config.vkAppSecret };
+    }
     if (appId && appId === this.config.okAppId) {
       return {
         name: 'ok',
@@ -46,9 +49,6 @@ class VkPaymentsService {
         name: 'ok',
         secret: this.config.okVkAppSecret || this.config.okAppSecret
       };
-    }
-    if (appId && appId === this.config.vkAppId) {
-      return { name: 'vk', secret: this.config.vkAppSecret };
     }
     throw callbackError(100, 'Invalid application');
   }
