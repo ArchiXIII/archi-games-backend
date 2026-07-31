@@ -20,6 +20,8 @@ class OrdersRepository {
         DECLARE $product_id AS Utf8;
         DECLARE $coins AS Int64;
         DECLARE $payload AS Json;
+        DECLARE $completed_status AS Utf8;
+        DECLARE $grant_type AS Utf8;
         $is_new = NOT EXISTS (
           SELECT 1 FROM orders
           WHERE platform = $platform AND platform_order_id = $order_id
@@ -28,13 +30,14 @@ class OrdersRepository {
           (platform, platform_order_id, game_id, platform_user_id, product_id,
            coins, status, granted, created_at, updated_at)
         SELECT $platform, $order_id, $game_id, $user_id, $product_id,
-               $coins, "completed", true, CurrentUtcTimestamp(), CurrentUtcTimestamp()
+               $coins, $completed_status, true,
+               CurrentUtcTimestamp(), CurrentUtcTimestamp()
         FROM (VALUES (1)) AS seed(dummy)
         WHERE $is_new;
         INSERT INTO purchase_events
           (event_id, platform, platform_order_id, event_type, payload_json,
            created_at, game_id, platform_user_id, coins_delta, delivered_at)
-        SELECT $event_id, $platform, $order_id, "grant", $payload,
+        SELECT $event_id, $platform, $order_id, $grant_type, $payload,
                CurrentUtcTimestamp(), $game_id, $user_id, $coins, NULL
         FROM (VALUES (1)) AS seed(dummy)
         WHERE $is_new;
@@ -47,6 +50,8 @@ class OrdersRepository {
         $user_id: TypedValues.utf8(order.userId),
         $product_id: TypedValues.utf8(order.productId),
         $coins: TypedValues.int64(order.coins),
+        $completed_status: TypedValues.utf8('completed'),
+        $grant_type: TypedValues.utf8('grant'),
         $payload: TypedValues.json(JSON.stringify({
           productId: order.productId,
           coinsDelta: order.coins
@@ -91,20 +96,22 @@ class OrdersRepository {
         DECLARE $user_id AS Utf8;
         DECLARE $coins_delta AS Int64;
         DECLARE $payload AS Json;
+        DECLARE $refunded_status AS Utf8;
+        DECLARE $refund_type AS Utf8;
         $is_new = EXISTS (
           SELECT 1 FROM orders
           WHERE platform = $platform AND platform_order_id = $order_id
-            AND status != "refunded"
+            AND status != $refunded_status
         );
         UPDATE orders SET
-          status = "refunded",
+          status = $refunded_status,
           refunded_at = CurrentUtcTimestamp(),
           updated_at = CurrentUtcTimestamp()
         WHERE $is_new AND platform = $platform AND platform_order_id = $order_id;
         INSERT INTO purchase_events
           (event_id, platform, platform_order_id, event_type, payload_json,
            created_at, game_id, platform_user_id, coins_delta, delivered_at)
-        SELECT $event_id, $platform, $order_id, "refund", $payload,
+        SELECT $event_id, $platform, $order_id, $refund_type, $payload,
                CurrentUtcTimestamp(), $game_id, $user_id, $coins_delta, NULL
         FROM (VALUES (1)) AS seed(dummy)
         WHERE $is_new;
@@ -116,6 +123,8 @@ class OrdersRepository {
         $game_id: TypedValues.utf8(refund.gameId),
         $user_id: TypedValues.utf8(refund.userId),
         $coins_delta: TypedValues.int64(-refund.coins),
+        $refunded_status: TypedValues.utf8('refunded'),
+        $refund_type: TypedValues.utf8('refund'),
         $payload: TypedValues.json(JSON.stringify({
           productId: refund.productId,
           coinsDelta: -refund.coins

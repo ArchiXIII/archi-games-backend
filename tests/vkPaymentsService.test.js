@@ -23,6 +23,7 @@ function setup() {
     vkAppSecret: 'vk-secret',
     okVkAppId: '99',
     okVkAppSecret: 'ok-vk-secret',
+    okAppId: '84',
     okAppSecret: 'ok-secret'
   };
   const purchaseService = {
@@ -54,6 +55,25 @@ test('OK get_item returns configured product and price', async () => {
     lang: 'ru_RU',
     item: 'coins_10000'
   }, 'ok-vk-secret'));
+  assert.deepEqual(result, {
+    item_id: 'coins_10000',
+    title: '10 000 монет',
+    price: 5,
+    expiration: 600
+  });
+});
+
+test('OK get_item accepts the linked OK application ID', async () => {
+  const { service } = setup();
+  const result = await service.process(signed({
+    notification_type: 'get_item',
+    app_id: '84',
+    user_id: '123',
+    receiver_id: '123',
+    order_id: '1',
+    lang: 'ru_RU',
+    item: 'coins_10000'
+  }, 'ok-secret'));
   assert.deepEqual(result, {
     item_id: 'coins_10000',
     title: '10 000 монет',

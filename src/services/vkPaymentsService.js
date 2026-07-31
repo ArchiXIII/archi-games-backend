@@ -35,6 +35,12 @@ class VkPaymentsService {
   }
 
   resolvePlatform(appId) {
+    if (appId && appId === this.config.okAppId) {
+      return {
+        name: 'ok',
+        secret: this.config.okAppSecret || this.config.okVkAppSecret
+      };
+    }
     if (appId && appId === this.config.okVkAppId) {
       return {
         name: 'ok',

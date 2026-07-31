@@ -26,7 +26,7 @@
 - идемпотентный ACK с проверкой владельца;
 - детерминированные grant/refund event ID по order ID;
 - серверный каталог четырёх актуальных VK/OK-товаров;
-- callback Direct Games для `get_item`, grant и refund с проверкой подписи;
+- callback Direct Games для `get_item`, grant и refund с проверкой подписи и поддержкой связанного ID приложения OK;
 - тихая отправка результата бесконечного режима через VK `secure.addAppEvent`;
 - callback покупок OK с проверкой подписи, приложения, товара и суммы;
 - идемпотентное начисление покупок OK по `transaction_id`;

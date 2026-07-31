@@ -17,12 +17,30 @@ function parsePaymentParams(event, maxBytes) {
 }
 
 async function vkPaymentsCallbackRoute(context) {
+  let params = {};
   try {
-    const params = parsePaymentParams(context.event, context.config.maxBodyBytes);
+    params = parsePaymentParams(context.event, context.config.maxBodyBytes);
     const response = await context.vkPaymentsService.process(params);
+    console.info(JSON.stringify({
+      level: 'info',
+      event: 'vk_payment_callback',
+      notificationType: String(params.notification_type || ''),
+      appId: String(params.app_id || ''),
+      item: String(params.item || params.item_id || ''),
+      result: 'success'
+    }));
     return json(200, { response });
   } catch (cause) {
     if (!(cause instanceof VkPaymentCallbackError)) throw cause;
+    console.warn(JSON.stringify({
+      level: 'warn',
+      event: 'vk_payment_callback',
+      notificationType: String(params.notification_type || ''),
+      appId: String(params.app_id || ''),
+      item: String(params.item || params.item_id || ''),
+      result: 'error',
+      errorCode: cause.callbackCode
+    }));
     return json(200, {
       error: {
         error_code: cause.callbackCode,
