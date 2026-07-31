@@ -1,27 +1,36 @@
 'use strict';
 
-const { error } = require('../response');
+const { json, HttpError } = require('../response');
+const { VkPaymentCallbackError } = require('../services/vkPaymentsService');
 
-const TODO = Object.freeze({
-  status: 'blocked_pending_official_vk_contract',
-  required: Object.freeze([
-    'callback_event_types',
-    'request_authentication_fields_and_algorithm',
-    'order_id_field',
-    'user_id_field',
-    'product_id_field',
-    'status_and_refund_fields',
-    'success_and_error_response_schema',
-    'retry_and_timeout_rules'
-  ])
-});
-
-function vkPaymentsCallbackRoute() {
-  return error(
-    501,
-    'VK_CALLBACK_NOT_CONFIGURED',
-    'VK payment callback is not configured'
-  );
+function parsePaymentParams(event, maxBytes) {
+  let raw = event && event.body != null ? String(event.body) : '';
+  if (event && event.isBase64Encoded) raw = Buffer.from(raw, 'base64').toString('utf8');
+  if (Buffer.byteLength(raw) > maxBytes) {
+    throw new HttpError(413, 'PAYLOAD_TOO_LARGE', 'Payload too large');
+  }
+  const params = {};
+  new URLSearchParams(raw).forEach((value, key) => {
+    params[key] = value;
+  });
+  return params;
 }
 
-module.exports = { vkPaymentsCallbackRoute, TODO };
+async function vkPaymentsCallbackRoute(context) {
+  try {
+    const params = parsePaymentParams(context.event, context.config.maxBodyBytes);
+    const response = await context.vkPaymentsService.process(params);
+    return json(200, { response });
+  } catch (cause) {
+    if (!(cause instanceof VkPaymentCallbackError)) throw cause;
+    return json(200, {
+      error: {
+        error_code: cause.callbackCode,
+        error_msg: cause.message,
+        critical: cause.critical
+      }
+    });
+  }
+}
+
+module.exports = { vkPaymentsCallbackRoute, parsePaymentParams };

@@ -70,6 +70,15 @@ function router(overrides = {}) {
         return { userId, score };
       }
     },
+    vkPaymentsService: {
+      async process(params) {
+        return {
+          item_id: params.item,
+          title: '10 000 монет',
+          price: 5
+        };
+      }
+    },
     okPaymentsService: {
       async process() {
         return { created: true };
@@ -340,6 +349,23 @@ test('OK payment callback returns the official JSON success response', async () 
   assert.equal(response.headers['Content-Type'], 'application/json; charset=utf-8');
   assert.equal(response.body, 'true');
   assert.deepEqual(received, { transaction_id: '1' });
+});
+
+test('VK payment callback accepts form data and returns item information', async () => {
+  const response = await router()({
+    httpMethod: 'POST',
+    path: '/v1/vk/payments/callback',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'notification_type=get_item&item=coins_10000'
+  });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(JSON.parse(response.body), {
+    response: {
+      item_id: 'coins_10000',
+      title: '10 000 монет',
+      price: 5
+    }
+  });
 });
 
 test('OK payment callback returns the official JSON error response', async () => {

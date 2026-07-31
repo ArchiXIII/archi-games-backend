@@ -24,7 +24,7 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - Для обычного VK сервер проверяет HMAC, `vk_app_id` и получает пользователя из `vk_user_id`.
 - Для запуска в Одноклассниках сервер дополнительно требует `vk_client=ok`, проверяет `vk_ok_app_id` и получает пользователя только из `vk_ok_user_id`.
 
-Обычный VK проверяется через `VK_APP_ID` и `VK_APP_SECRET`. Запуск OK проверяется отдельно через `OK_VK_APP_ID`, `OK_APP_SECRET` и `OK_APP_ID`. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются. VK callback пока отвечает `501 VK_CALLBACK_NOT_CONFIGURED`.
+Обычный VK проверяется через `VK_APP_ID` и `VK_APP_SECRET`. Запуск OK проверяется отдельно через `OK_VK_APP_ID`, `OK_APP_SECRET` и `OK_APP_ID`. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются. Callback Direct Games принимает уведомления `get_item` и `order_status_change` для VK и OK.
 
 ### Рейтинги
 

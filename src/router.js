@@ -23,7 +23,7 @@ const ROUTES = new Map([
   ['GET /v1/purchase-events/pending', { handler: pendingPurchaseEventsRoute, auth: 'client' }],
   ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: 'client', json: true }],
   ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: 'vk', json: true }],
-  ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute, json: true }],
+  ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute }],
   ['POST /v1/ok/endless-score', { handler: okEndlessScoreRoute, auth: 'ok', json: true }],
   ['GET /v1/ok/leaderboards/endless', { handler: okEndlessLeaderboardRoute, auth: 'ok' }],
   ['GET /v1/ok/payments/callback', { handler: okPaymentsCallbackRoute }]

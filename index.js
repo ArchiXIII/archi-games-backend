@@ -12,6 +12,7 @@ const { PurchaseService } = require('./src/services/purchaseService');
 const { PurchaseEventsService } = require('./src/services/purchaseEventsService');
 const { VkApiService } = require('./src/services/vkApiService');
 const { OkPaymentsService } = require('./src/services/okPaymentsService');
+const { VkPaymentsService } = require('./src/services/vkPaymentsService');
 const { EndlessLeaderboardService } = require('./src/services/endlessLeaderboardService');
 const { createRouter } = require('./src/router');
 
@@ -26,6 +27,7 @@ const purchaseService = new PurchaseService(productsService, ordersRepository);
 const purchaseEventsService = new PurchaseEventsService(purchaseEventsRepository);
 const vkApiService = new VkApiService(config);
 const okPaymentsService = new OkPaymentsService(config, purchaseService);
+const vkPaymentsService = new VkPaymentsService(config, productsService, purchaseService);
 const endlessLeaderboardService = new EndlessLeaderboardService(endlessLeaderboardRepository);
 
 if (config.ydbEndpoint && config.ydbDatabase) getDriver(config);
@@ -36,6 +38,7 @@ const handler = createRouter({
   purchaseService,
   purchaseEventsService,
   vkApiService,
+  vkPaymentsService,
   okPaymentsService,
   endlessLeaderboardService
 });
