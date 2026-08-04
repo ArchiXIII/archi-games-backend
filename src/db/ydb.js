@@ -1,6 +1,7 @@
 'use strict';
 
 const {
+  Context,
   Driver,
   MetadataAuthService,
   AnonymousAuthService,
@@ -27,7 +28,7 @@ function getDriver(config) {
     driver = new Driver({
       connectionString: connectionString(config),
       authService,
-      poolSettings: { minLimit: 0, maxLimit: 5 }
+      poolSettings: { minLimit: 0, maxLimit: 2 }
     });
   }
   return driver;
@@ -35,7 +36,7 @@ function getDriver(config) {
 
 async function initYdb(config) {
   if (!readyPromise) {
-    readyPromise = getDriver(config).ready(4000).then((ready) => {
+    readyPromise = getDriver(config).ready(1800).then((ready) => {
       if (!ready) throw new Error('YDB driver initialization timed out');
       return driver;
     }).catch((cause) => {
@@ -48,7 +49,12 @@ async function initYdb(config) {
 
 async function withSession(config, callback) {
   const activeDriver = await initYdb(config);
-  return activeDriver.tableClient.withSessionRetry(callback, 4500, 5);
+  const context = Context.createNew({ timeout: 2500 });
+  try {
+    return await activeDriver.tableClient.withSessionRetry(context.ctx, callback, 1200, 1);
+  } finally {
+    if (context.dispose) context.dispose();
+  }
 }
 
 function rows(result, index = 0) {

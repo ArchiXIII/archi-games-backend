@@ -87,23 +87,28 @@ class EndlessLeaderboardRepository {
       const current = rows(result, 1).at(0);
       let rank = null;
       if (current) {
-        const rankResult = await session.executeQuery(`
-          DECLARE $game_id AS Utf8;
-          DECLARE $platform AS Utf8;
-          DECLARE $user_id AS Utf8;
-          DECLARE $score AS Int64;
-          SELECT COUNT(*) AS preceding
-          FROM endless_leaderboard VIEW idx_endless_score
-          WHERE game_id = $game_id AND platform = $platform
-            AND (best_score > $score OR
-              (best_score = $score AND platform_user_id < $user_id));
-        `, {
-          $game_id: params.$game_id,
-          $platform: params.$platform,
-          $user_id: params.$user_id,
-          $score: TypedValues.int64(numberValue(current.best_score))
-        });
-        rank = numberValue(rows(rankResult).at(0).preceding) + 1;
+        const visibleIndex = entries.findIndex((row) => String(row.platform_user_id) === userId);
+        if (visibleIndex >= 0) {
+          rank = offset + visibleIndex + 1;
+        } else {
+          const rankResult = await session.executeQuery(`
+            DECLARE $game_id AS Utf8;
+            DECLARE $platform AS Utf8;
+            DECLARE $user_id AS Utf8;
+            DECLARE $score AS Int64;
+            SELECT COUNT(*) AS preceding
+            FROM endless_leaderboard VIEW idx_endless_score
+            WHERE game_id = $game_id AND platform = $platform
+              AND (best_score > $score OR
+                (best_score = $score AND platform_user_id < $user_id));
+          `, {
+            $game_id: params.$game_id,
+            $platform: params.$platform,
+            $user_id: params.$user_id,
+            $score: TypedValues.int64(numberValue(current.best_score))
+          });
+          rank = numberValue(rows(rankResult).at(0).preceding) + 1;
+        }
       }
       return { entries, current, rank };
     });
