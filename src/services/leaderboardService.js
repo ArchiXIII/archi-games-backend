@@ -61,6 +61,8 @@ class LeaderboardService {
     this.repository = repository;
     this.syncCache = new Map();
     this.listCache = new Map();
+    this.syncPromises = new Map();
+    this.listPromises = new Map();
     this.cacheLimit = 512;
   }
 
@@ -85,20 +87,27 @@ class LeaderboardService {
         (!playerName || cached.playerName === playerName)) {
       return { totalStars: cached.totalStars };
     }
-    const row = await this.repository.sync(
+    const promiseKey = `${cacheKey}:${totalStars}:${playerName}`;
+    if (this.syncPromises.has(promiseKey)) return this.syncPromises.get(promiseKey);
+    const promise = this.repository.sync(
       gameId,
       platform,
       userId,
       totalStars,
       playerName
-    );
-    const storedStars = numberValue(row.total_stars);
-    this.setCache(this.syncCache, cacheKey, {
-      totalStars: storedStars,
-      playerName: playerName || (cached && cached.playerName) || ''
+    ).then((row) => {
+      const storedStars = numberValue(row.total_stars);
+      this.setCache(this.syncCache, cacheKey, {
+        totalStars: storedStars,
+        playerName: playerName || (cached && cached.playerName) || ''
+      });
+      this.listCache.clear();
+      return { totalStars: storedStars };
+    }).finally(() => {
+      this.syncPromises.delete(promiseKey);
     });
-    this.listCache.clear();
-    return { totalStars: storedStars };
+    this.syncPromises.set(promiseKey, promise);
+    return promise;
   }
 
   async list(gameId, platform, userId, query) {
@@ -107,12 +116,19 @@ class LeaderboardService {
     const cacheKey = `${gameId}:${platform}:${userId}:${limit}:${offset}`;
     const cached = this.listCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) return cached.value;
-    const result = await this.repository.list(gameId, platform, userId, limit, offset);
-    const entries = result.entries.map((row, index) => entry(row, offset + index + 1, userId));
-    const currentUser = result.current ? entry(result.current, result.rank, userId) : null;
-    const value = { entries, currentUser, limit, offset };
-    this.setCache(this.listCache, cacheKey, { value, expiresAt: Date.now() + 15000 });
-    return value;
+    if (this.listPromises.has(cacheKey)) return this.listPromises.get(cacheKey);
+    const promise = this.repository.list(gameId, platform, userId, limit, offset)
+      .then((result) => {
+        const entries = result.entries.map((row, index) => entry(row, offset + index + 1, userId));
+        const currentUser = result.current ? entry(result.current, result.rank, userId) : null;
+        const value = { entries, currentUser, limit, offset };
+        this.setCache(this.listCache, cacheKey, { value, expiresAt: Date.now() + 60000 });
+        return value;
+      }).finally(() => {
+        this.listPromises.delete(cacheKey);
+      });
+    this.listPromises.set(cacheKey, promise);
+    return promise;
   }
 }
 

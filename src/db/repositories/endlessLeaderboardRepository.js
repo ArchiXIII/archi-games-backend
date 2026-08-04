@@ -15,7 +15,7 @@ class EndlessLeaderboardRepository {
 
   async sync(gameId, platform, userId, bestScore, playerName) {
     return withSession(this.config, async (session) => {
-      const result = await session.executeQuery(`
+      await session.executeQuery(`
         DECLARE $game_id AS Utf8;
         DECLARE $platform AS Utf8;
         DECLARE $user_id AS Utf8;
@@ -48,9 +48,6 @@ class EndlessLeaderboardRepository {
           WHERE game_id = $game_id AND platform = $platform
             AND platform_user_id = $user_id
         );
-        SELECT ${COLUMNS} FROM endless_leaderboard
-        WHERE game_id = $game_id AND platform = $platform
-          AND platform_user_id = $user_id;
       `, {
         $game_id: TypedValues.utf8(gameId),
         $platform: TypedValues.utf8(platform),
@@ -58,7 +55,7 @@ class EndlessLeaderboardRepository {
         $best_score: TypedValues.int64(bestScore),
         $player_name: TypedValues.utf8(playerName)
       });
-      return rows(result).at(0);
+      return { best_score: bestScore };
     });
   }
 

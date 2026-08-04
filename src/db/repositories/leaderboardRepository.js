@@ -15,7 +15,7 @@ class LeaderboardRepository {
 
   async sync(gameId, platform, userId, totalStars, playerName) {
     return withSession(this.config, async (session) => {
-      const result = await session.executeQuery(`
+      await session.executeQuery(`
         DECLARE $game_id AS Utf8;
         DECLARE $platform AS Utf8;
         DECLARE $user_id AS Utf8;
@@ -47,9 +47,6 @@ class LeaderboardRepository {
           WHERE game_id = $game_id AND platform = $platform
             AND platform_user_id = $user_id
         );
-        SELECT ${COLUMNS} FROM leaderboard_totals
-        WHERE game_id = $game_id AND platform = $platform
-          AND platform_user_id = $user_id;
       `, {
         $game_id: TypedValues.utf8(gameId),
         $platform: TypedValues.utf8(platform),
@@ -57,7 +54,7 @@ class LeaderboardRepository {
         $total_stars: TypedValues.int64(totalStars),
         $player_name: TypedValues.utf8(playerName)
       });
-      return rows(result).at(0);
+      return { total_stars: totalStars };
     });
   }
 
