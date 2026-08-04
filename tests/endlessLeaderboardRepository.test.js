@@ -12,6 +12,8 @@ test('endless leaderboard uses monotonic score and valid YDB insert source', () 
   );
   assert.match(source, /best_score = MAX_OF\(best_score, \$best_score\)/);
   assert.match(source, /WHEN \$best_score > best_score THEN CurrentUtcTimestamp\(\)/);
+  assert.match(source, /\$best_score > best_score/);
+  assert.match(source, /\$player_name != COALESCE\(player_name, ""\)/);
   assert.match(
     source,
     /FROM \(VALUES \(1\)\) AS seed\(dummy\)\s+WHERE NOT EXISTS \(/

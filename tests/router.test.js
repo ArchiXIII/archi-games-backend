@@ -154,6 +154,30 @@ test('stars and purchase event routes use VK identity', async () => {
   assert.deepEqual(JSON.parse(pending.body), { events: [] });
 });
 
+test('YDB resource exhaustion returns a temporary service response', async () => {
+  const failure = new Error('8 RESOURCE_EXHAUSTED: ResourceExhausted');
+  const overloadedRoute = createRouter({
+    config: {
+      ...loadConfig({ NODE_ENV: 'test' }),
+      vkAppId: '42',
+      vkAppSecret: 'secret'
+    },
+    leaderboardService: {
+      async list() {
+        throw failure;
+      }
+    }
+  });
+  const response = await overloadedRoute({
+    httpMethod: 'GET',
+    path: '/v1/leaderboards/stars',
+    headers: authHeaders()
+  });
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.headers['Retry-After'], '10');
+  assert.equal(JSON.parse(response.body).error.code, 'SERVICE_BUSY');
+});
+
 test('leaderboard routes accept OK identity and keep platform separated', async () => {
   let syncCall;
   const route = createRouter({

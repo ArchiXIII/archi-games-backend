@@ -7,10 +7,24 @@ const EVENT_ID = /^(grant|refund)_[a-f0-9]{64}$/;
 class PurchaseEventsService {
   constructor(repository) {
     this.repository = repository;
+    this.emptyCache = new Map();
+    this.cacheLimit = 512;
   }
 
-  pending(gameId, platform, userId) {
-    return this.repository.pending(gameId, platform, userId);
+  async pending(gameId, platform, userId) {
+    const key = `${gameId}:${platform}:${userId}`;
+    const cachedUntil = this.emptyCache.get(key) || 0;
+    if (Date.now() < cachedUntil) return [];
+    const events = await this.repository.pending(gameId, platform, userId);
+    if (events.length) {
+      this.emptyCache.delete(key);
+    } else {
+      if (this.emptyCache.size >= this.cacheLimit && !this.emptyCache.has(key)) {
+        this.emptyCache.delete(this.emptyCache.keys().next().value);
+      }
+      this.emptyCache.set(key, Date.now() + 3000);
+    }
+    return events;
   }
 
   async ack(gameId, platform, userId, body) {
@@ -20,6 +34,7 @@ class PurchaseEventsService {
       throw new HttpError(400, 'INVALID_REQUEST', 'Invalid request');
     }
     await this.repository.ack(gameId, platform, userId, body.eventId);
+    this.emptyCache.delete(`${gameId}:${platform}:${userId}`);
     return body.eventId;
   }
 }

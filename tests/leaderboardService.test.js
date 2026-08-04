@@ -137,3 +137,31 @@ test('leaderboard response matches Crystal Match client contract', async () => {
   assert.equal(result.currentUser.rank, 7);
   assert.equal(result.currentUser.isCurrentUser, true);
 });
+
+test('repeated leaderboard sync is served from bounded memory cache', async () => {
+  let calls = 0;
+  const service = new LeaderboardService({
+    async sync() {
+      calls++;
+      return { total_stars: 50 };
+    }
+  });
+  const body = { totalStars: 50, playerName: 'Alex' };
+  assert.deepEqual(await service.sync('crystal-match', 'ok', '123', body), { totalStars: 50 });
+  assert.deepEqual(await service.sync('crystal-match', 'ok', '123', body), { totalStars: 50 });
+  assert.equal(calls, 1);
+});
+
+test('repeated leaderboard read is served from short memory cache', async () => {
+  let calls = 0;
+  const service = new LeaderboardService({
+    async list() {
+      calls++;
+      return { entries: [], current: null, rank: null };
+    }
+  });
+  const query = { limit: '20', offset: '0' };
+  await service.list('crystal-match', 'ok', '123', query);
+  await service.list('crystal-match', 'ok', '123', query);
+  assert.equal(calls, 1);
+});

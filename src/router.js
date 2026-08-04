@@ -107,6 +107,14 @@ function corsHeaders(origin, allowedOrigins) {
   };
 }
 
+function isServiceBusy(cause) {
+  const text = String(cause && cause.message || '');
+  const name = String(cause && cause.constructor && cause.constructor.name || '');
+  return name === 'ClientResourceExhausted' ||
+    Number(cause && cause.status) === 401020 ||
+    /RESOURCE_EXHAUSTED|ResourceExhausted/i.test(text);
+}
+
 function createRouter(dependencies) {
   return async function route(event = {}) {
     const id = requestId(event);
@@ -136,6 +144,7 @@ function createRouter(dependencies) {
       logger.info({ requestId: id, method, path, statusCode: response.statusCode });
       return response;
     } catch (cause) {
+      const serviceBusy = isServiceBusy(cause);
       if (!(cause instanceof HttpError)) {
         logger.error({
           requestId: id,
@@ -145,12 +154,13 @@ function createRouter(dependencies) {
           stack: dependencies.config.nodeEnv === 'production' ? undefined : cause && cause.stack
         });
       }
-      const statusCode = cause instanceof HttpError ? cause.statusCode : 500;
-      const code = cause instanceof HttpError ? cause.code : 'INTERNAL_ERROR';
-      const message = cause instanceof HttpError ? cause.message : 'Internal server error';
-      return error(statusCode, code, message, responseHeaders);
+      const statusCode = cause instanceof HttpError ? cause.statusCode : (serviceBusy ? 503 : 500);
+      const code = cause instanceof HttpError ? cause.code : (serviceBusy ? 'SERVICE_BUSY' : 'INTERNAL_ERROR');
+      const message = cause instanceof HttpError ? cause.message : (serviceBusy ? 'Service temporarily busy' : 'Internal server error');
+      const headers = serviceBusy ? { ...responseHeaders, 'Retry-After': '10' } : responseHeaders;
+      return error(statusCode, code, message, headers);
     }
   };
 }
 
-module.exports = { createRouter, parseBody, normalizeHeaders, corsHeaders, authenticate };
+module.exports = { createRouter, parseBody, normalizeHeaders, corsHeaders, authenticate, isServiceBusy };

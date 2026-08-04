@@ -32,7 +32,11 @@ class EndlessLeaderboardRepository {
             ELSE player_name
           END
         WHERE game_id = $game_id AND platform = $platform
-          AND platform_user_id = $user_id;
+          AND platform_user_id = $user_id
+          AND (
+            $best_score > best_score OR
+            ($player_name != "" AND $player_name != COALESCE(player_name, ""))
+          );
         INSERT INTO endless_leaderboard
           (game_id, platform, platform_user_id, player_name, best_score, updated_at)
         SELECT $game_id, $platform, $user_id,

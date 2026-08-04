@@ -40,3 +40,16 @@ test('purchase event ACK is repeat-safe and user-scoped', async () => {
     ['crystal-match', 'vk', '123', eventId]
   ]);
 });
+
+test('repeated empty purchase checks use a short memory cache', async () => {
+  let calls = 0;
+  const service = new PurchaseEventsService({
+    async pending() {
+      calls++;
+      return [];
+    }
+  });
+  assert.deepEqual(await service.pending('crystal-match', 'vk', '123'), []);
+  assert.deepEqual(await service.pending('crystal-match', 'vk', '123'), []);
+  assert.equal(calls, 1);
+});

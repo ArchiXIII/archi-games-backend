@@ -29,7 +29,11 @@ class LeaderboardRepository {
           END,
           updated_at = CurrentUtcTimestamp()
         WHERE game_id = $game_id AND platform = $platform
-          AND platform_user_id = $user_id;
+          AND platform_user_id = $user_id
+          AND (
+            $total_stars > total_stars OR
+            ($player_name != "" AND $player_name != COALESCE(player_name, ""))
+          );
         INSERT INTO leaderboard_totals
           (game_id, platform, platform_user_id, player_name, avatar_url,
            total_stars, total_xp, updated_at)
