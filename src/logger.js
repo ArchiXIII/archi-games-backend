@@ -12,9 +12,6 @@ function write(level, data) {
 }
 
 module.exports = {
-  info(data) {
-    write('info', data);
-  },
   warn(data) {
     write('warn', data);
   },

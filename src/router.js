@@ -141,7 +141,6 @@ function createRouter(dependencies) {
       if (routeConfig.auth) context.auth = authenticate(headers, dependencies.config, routeConfig.auth);
       const response = await routeConfig.handler(context);
       response.headers = { ...response.headers, ...responseHeaders };
-      logger.info({ requestId: id, method, path, statusCode: response.statusCode });
       return response;
     } catch (cause) {
       const serviceBusy = isServiceBusy(cause);
