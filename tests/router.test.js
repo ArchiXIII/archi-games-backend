@@ -17,7 +17,7 @@ function authHeaders(contentType) {
   return {
     ...(contentType ? { 'content-type': contentType } : {}),
     'x-vk-launch-params': params.toString(),
-    'x-client-version': '2'
+    'x-client-version': '3'
   };
 }
 
@@ -34,7 +34,7 @@ function okAuthHeaders(contentType) {
   return {
     ...(contentType ? { 'content-type': contentType } : {}),
     'x-vk-launch-params': params.toString(),
-    'x-client-version': '2'
+    'x-client-version': '3'
   };
 }
 

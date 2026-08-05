@@ -58,7 +58,7 @@ test('OK get_item returns configured product and price', async () => {
   assert.deepEqual(result, {
     item_id: 'coins_10000',
     title: '10 000 монет',
-    price: 5,
+    price: 19,
     expiration: 600
   });
 });
@@ -77,7 +77,7 @@ test('OK get_item accepts the linked OK application ID', async () => {
   assert.deepEqual(result, {
     item_id: 'coins_10000',
     title: '10 000 монет',
-    price: 5,
+    price: 19,
     expiration: 600
   });
 });
@@ -100,7 +100,7 @@ test('OK chargeable order creates a confirmed grant', async () => {
     receiver_id: '123',
     order_id: '77',
     item: 'coins_25000',
-    item_price: '10',
+    item_price: '49',
     status: 'chargeable'
   }, 'ok-vk-secret'));
   assert.deepEqual(result, { order_id: 77 });
@@ -112,7 +112,7 @@ test('OK chargeable order creates a confirmed grant', async () => {
       orderId: '77',
       userId: '123',
       productId: 'coins_25000',
-      amount: 10
+      amount: 49
     }
   }]);
 });

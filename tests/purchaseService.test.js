@@ -97,7 +97,7 @@ test('OK purchase requires the catalog price', async () => {
     orderId: 'transaction-1',
     userId: '123',
     productId: 'coins_10000',
-    amount: 5
+    amount: 19
   });
   assert.equal(orders.get('transaction-1').coins, 10000);
 });

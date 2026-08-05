@@ -71,12 +71,30 @@ class LeaderboardRepository {
         DECLARE $limit AS Uint64;
         DECLARE $offset AS Uint64;
         SELECT ${COLUMNS}
-        FROM leaderboard_totals VIEW idx_leaderboard_stars
+        FROM leaderboard_totals
         WHERE game_id = $game_id AND platform = $platform
         ORDER BY total_stars DESC, platform_user_id ASC
         LIMIT $limit OFFSET $offset;
       `, params);
       return { entries: rows(result, 0) };
+    });
+  }
+
+  async remove(gameId, platform, userId) {
+    return withSession(this.config, async (session) => {
+      await executeCached(session, `
+        DECLARE $game_id AS Utf8;
+        DECLARE $platform AS Utf8;
+        DECLARE $user_id AS Utf8;
+        DELETE FROM leaderboard_totals
+        WHERE game_id = $game_id AND platform = $platform
+          AND platform_user_id = $user_id;
+      `, {
+        $game_id: TypedValues.utf8(gameId),
+        $platform: TypedValues.utf8(platform),
+        $user_id: TypedValues.utf8(userId)
+      });
+      return true;
     });
   }
 }

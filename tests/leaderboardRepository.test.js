@@ -19,6 +19,8 @@ test('missing leaderboard row is filtered from a valid YDB source', () => {
   assert.match(source, /\$player_name != COALESCE\(player_name, ""\)/);
   assert.doesNotMatch(source, /\$total_xp|total_xp = MAX_OF/);
   assert.match(source, /\$total_stars, 0, CurrentUtcTimestamp\(\)/);
+  assert.doesNotMatch(source, /VIEW idx_leaderboard_stars/);
+  assert.match(source, /DELETE FROM leaderboard_totals/);
 });
 
 test('migration 004 removes the unused XP leaderboard index', () => {

@@ -18,8 +18,8 @@ const {
 
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
-  ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: 'client', json: true, legacy: 'write' }],
-  ['GET /v1/leaderboards/stars', { handler: starsLeaderboardRoute, auth: 'client', legacy: 'list' }],
+  ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: 'client', json: true, legacy: 'write', minVersion: 3 }],
+  ['GET /v1/leaderboards/stars', { handler: starsLeaderboardRoute, auth: 'client', legacy: 'list', minVersion: 3 }],
   ['GET /v1/purchase-events/pending', { handler: pendingPurchaseEventsRoute, auth: 'client' }],
   ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: 'client', json: true }],
   ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: 'vk', json: true, legacy: 'write' }],
@@ -140,7 +140,8 @@ function createRouter(dependencies) {
       if (routeConfig.json) context.body = parseBody(event, headers, dependencies.config.maxBodyBytes);
       if (routeConfig.auth) context.auth = authenticate(headers, dependencies.config, routeConfig.auth);
       const clientVersion = Math.max(0, Math.floor(Number(headers['x-client-version']) || 0));
-      if (routeConfig.legacy && clientVersion < (dependencies.config.minClientVersion || 2)) {
+      const minClientVersion = routeConfig.minVersion || dependencies.config.minClientVersion || 2;
+      if (routeConfig.legacy && clientVersion < minClientVersion) {
         const payload = routeConfig.legacy === 'list'
           ? { entries: [], currentUser: null, limit: 0, offset: 0, staleClient: true }
           : { ok: true, skipped: true, staleClient: true };
