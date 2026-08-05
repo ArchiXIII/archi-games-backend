@@ -1,10 +1,10 @@
 'use strict';
 
 const { TypedValues } = require('ydb-sdk');
-const { withSession, rows } = require('../ydb');
+const { withSession, executeCached, rows } = require('../ydb');
 
 const COLUMNS = `
-  platform_user_id, player_name, avatar_url, total_stars, updated_at
+  platform_user_id, player_name, total_stars
 `;
 
 class LeaderboardRepository {
@@ -14,7 +14,7 @@ class LeaderboardRepository {
 
   async sync(gameId, platform, userId, totalStars, playerName) {
     return withSession(this.config, async (session) => {
-      await session.executeQuery(`
+      await executeCached(session, `
         DECLARE $game_id AS Utf8;
         DECLARE $platform AS Utf8;
         DECLARE $user_id AS Utf8;
@@ -57,19 +57,17 @@ class LeaderboardRepository {
     });
   }
 
-  async list(gameId, platform, userId, limit, offset) {
+  async list(gameId, platform, limit, offset) {
     return withSession(this.config, async (session) => {
       const params = {
         $game_id: TypedValues.utf8(gameId),
         $platform: TypedValues.utf8(platform),
-        $user_id: TypedValues.utf8(userId),
         $limit: TypedValues.uint64(limit),
         $offset: TypedValues.uint64(offset)
       };
-      const result = await session.executeQuery(`
+      const result = await executeCached(session, `
         DECLARE $game_id AS Utf8;
         DECLARE $platform AS Utf8;
-        DECLARE $user_id AS Utf8;
         DECLARE $limit AS Uint64;
         DECLARE $offset AS Uint64;
         SELECT ${COLUMNS}
@@ -77,21 +75,8 @@ class LeaderboardRepository {
         WHERE game_id = $game_id AND platform = $platform
         ORDER BY total_stars DESC, platform_user_id ASC
         LIMIT $limit OFFSET $offset;
-        SELECT ${COLUMNS}
-        FROM leaderboard_totals
-        WHERE game_id = $game_id AND platform = $platform
-          AND platform_user_id = $user_id;
       `, params);
-      const entries = rows(result, 0);
-      const current = rows(result, 1).at(0);
-      let rank = null;
-      if (current) {
-        const visibleIndex = entries.findIndex((row) => String(row.platform_user_id) === userId);
-        if (visibleIndex >= 0) {
-          rank = offset + visibleIndex + 1;
-        }
-      }
-      return { entries, current, rank };
+      return { entries: rows(result, 0) };
     });
   }
 }

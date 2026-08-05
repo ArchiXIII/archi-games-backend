@@ -74,15 +74,16 @@ test('OK callback validates signature before payment fields', async () => {
 
 test('OK callback rejects wrong app, product and amount', async () => {
   const { service } = setup();
-  for (const params of [
-    callback({ application_key: 'other' }),
-    callback({ product_code: 'missing' }),
-    callback({ amount: '1' })
+  for (const [params, reason] of [
+    [callback({ application_key: 'other' }), 'application_key'],
+    [callback({ product_code: 'missing' }), 'purchase_unknown_product'],
+    [callback({ amount: '1' }), 'purchase_invalid_payment']
   ]) {
     await assert.rejects(
       service.process(params),
       (cause) => cause instanceof OkCallbackError &&
-        cause.callbackCode === CALLBACK_INVALID_PAYMENT
+        cause.callbackCode === CALLBACK_INVALID_PAYMENT &&
+        cause.reason === reason
     );
   }
 });

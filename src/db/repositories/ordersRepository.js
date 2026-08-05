@@ -1,7 +1,7 @@
 'use strict';
 
 const { TypedValues } = require('ydb-sdk');
-const { withSession, rows } = require('../ydb');
+const { withSession, executeCached, rows } = require('../ydb');
 const { numberValue } = require('../values');
 
 class OrdersRepository {
@@ -11,7 +11,7 @@ class OrdersRepository {
 
   async createGrant(order) {
     return withSession(this.config, async (session) => {
-      const result = await session.executeQuery(`
+      const result = await executeCached(session, `
         DECLARE $platform AS Utf8;
         DECLARE $order_id AS Utf8;
         DECLARE $event_id AS Utf8;
@@ -65,7 +65,7 @@ class OrdersRepository {
   }
 
   async get(platform, orderId) {
-    const result = await withSession(this.config, (session) => session.executeQuery(`
+    const result = await withSession(this.config, (session) => executeCached(session, `
       DECLARE $platform AS Utf8;
       DECLARE $order_id AS Utf8;
       SELECT game_id, platform_user_id, product_id, coins, status
@@ -88,7 +88,7 @@ class OrdersRepository {
 
   async createRefund(refund) {
     return withSession(this.config, async (session) => {
-      const result = await session.executeQuery(`
+      const result = await executeCached(session, `
         DECLARE $platform AS Utf8;
         DECLARE $order_id AS Utf8;
         DECLARE $event_id AS Utf8;

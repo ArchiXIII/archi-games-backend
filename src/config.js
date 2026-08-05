@@ -34,6 +34,7 @@ function loadConfig(env = process.env) {
     allowedOrigins: splitOrigins(env.ALLOWED_ORIGINS),
     nodeEnv: env.NODE_ENV || 'development',
     maxBodyBytes: 64 * 1024,
+    minClientVersion: Math.max(1, Math.floor(Number(env.MIN_CLIENT_VERSION) || 2)),
     products: PRODUCTS
   });
 }

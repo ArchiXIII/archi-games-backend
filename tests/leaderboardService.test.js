@@ -105,16 +105,12 @@ test('leaderboard response matches Crystal Match client contract', async () => {
         entries: [{
           platform_user_id: '456',
           player_name: 'Alex',
-          avatar_url: 'https://example.com/avatar.jpg',
           total_stars: 150
-        }],
-        current: {
+        }, {
           platform_user_id: '123',
           player_name: '123',
-          avatar_url: null,
           total_stars: 100
-        },
-        rank: 7
+        }]
       };
     }
   };
@@ -129,7 +125,6 @@ test('leaderboard response matches Crystal Match client contract', async () => {
     rank: 6,
     userId: '456',
     playerName: 'Alex',
-    avatarUrl: 'https://example.com/avatar.jpg',
     score: 150,
     totalStars: 150,
     isCurrentUser: false
@@ -152,7 +147,7 @@ test('repeated leaderboard sync is served from bounded memory cache', async () =
   assert.equal(calls, 1);
 });
 
-test('repeated leaderboard read is served from short memory cache', async () => {
+test('leaderboard top is shared between users in memory cache', async () => {
   let calls = 0;
   const service = new LeaderboardService({
     async list() {
@@ -162,6 +157,6 @@ test('repeated leaderboard read is served from short memory cache', async () => 
   });
   const query = { limit: '20', offset: '0' };
   await service.list('crystal-match', 'ok', '123', query);
-  await service.list('crystal-match', 'ok', '123', query);
+  await service.list('crystal-match', 'ok', '456', query);
   assert.equal(calls, 1);
 });

@@ -37,15 +37,13 @@ test('endless score sync rejects invalid bodies', async () => {
 });
 
 test('endless leaderboard response includes best score and current user rank', async () => {
-  const updatedAt = new Date('2026-07-30T10:00:00.000Z');
   const service = new EndlessLeaderboardService({
-    async list(gameId, platform, userId, limit, offset) {
+    async list(gameId, platform, limit, offset) {
       assert.deepEqual(
-        { gameId, platform, userId, limit, offset },
+        { gameId, platform, limit, offset },
         {
           gameId: 'crystal-match',
           platform: 'ok',
-          userId: '456',
           limit: 20,
           offset: 5
         }
@@ -54,16 +52,12 @@ test('endless leaderboard response includes best score and current user rank', a
         entries: [{
           platform_user_id: '789',
           player_name: 'Player',
-          best_score: 30000,
-          updated_at: updatedAt
-        }],
-        current: {
+          best_score: 30000
+        }, {
           platform_user_id: '456',
           player_name: 'Alex',
-          best_score: 24685,
-          updated_at: updatedAt
-        },
-        rank: 7
+          best_score: 24685
+        }]
       };
     }
   });
@@ -79,7 +73,6 @@ test('endless leaderboard response includes best score and current user rank', a
     playerName: 'Player',
     score: 30000,
     bestScore: 30000,
-    updatedAt: '2026-07-30T10:00:00.000Z',
     isCurrentUser: false
   });
   assert.equal(result.currentUser.rank, 7);

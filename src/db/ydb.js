@@ -57,9 +57,13 @@ async function withSession(config, callback) {
   }
 }
 
+function executeCached(session, query, params = {}) {
+  return session.executeQuery(query, params, undefined, { keepInCache: true });
+}
+
 function rows(result, index = 0) {
   const set = result.resultSets && result.resultSets[index];
   return set ? TypedData.createNativeObjects(set) : [];
 }
 
-module.exports = { getDriver, initYdb, withSession, rows, connectionString };
+module.exports = { getDriver, initYdb, withSession, executeCached, rows, connectionString };

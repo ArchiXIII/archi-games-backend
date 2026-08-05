@@ -2,7 +2,7 @@
 
 const crypto = require('node:crypto');
 const logger = require('./logger');
-const { HttpError, error } = require('./response');
+const { HttpError, json, error } = require('./response');
 const { verifyVkLaunchParams } = require('./auth/vkLaunchParams');
 const { verifyOkLaunchParams, isOkLaunchParams } = require('./auth/okLaunchParams');
 const { healthRoute } = require('./routes/health');
@@ -18,14 +18,14 @@ const {
 
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
-  ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: 'client', json: true }],
-  ['GET /v1/leaderboards/stars', { handler: starsLeaderboardRoute, auth: 'client' }],
+  ['POST /v1/leaderboards/sync', { handler: syncLeaderboardRoute, auth: 'client', json: true, legacy: 'write' }],
+  ['GET /v1/leaderboards/stars', { handler: starsLeaderboardRoute, auth: 'client', legacy: 'list' }],
   ['GET /v1/purchase-events/pending', { handler: pendingPurchaseEventsRoute, auth: 'client' }],
   ['POST /v1/purchase-events/ack', { handler: ackPurchaseEventRoute, auth: 'client', json: true }],
-  ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: 'vk', json: true }],
+  ['POST /v1/vk/endless-score', { handler: vkEndlessScoreRoute, auth: 'vk', json: true, legacy: 'write' }],
   ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute }],
-  ['POST /v1/ok/endless-score', { handler: okEndlessScoreRoute, auth: 'ok', json: true }],
-  ['GET /v1/ok/leaderboards/endless', { handler: okEndlessLeaderboardRoute, auth: 'ok' }],
+  ['POST /v1/ok/endless-score', { handler: okEndlessScoreRoute, auth: 'ok', json: true, legacy: 'write' }],
+  ['GET /v1/ok/leaderboards/endless', { handler: okEndlessLeaderboardRoute, auth: 'ok', legacy: 'list' }],
   ['GET /v1/ok/payments/callback', { handler: okPaymentsCallbackRoute }]
 ]);
 
@@ -101,7 +101,7 @@ function corsHeaders(origin, allowedOrigins) {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-VK-Launch-Params,X-Request-Id',
+    'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-VK-Launch-Params,X-Request-Id,X-Client-Version',
     'Access-Control-Max-Age': '600',
     Vary: 'Origin'
   };
@@ -139,6 +139,15 @@ function createRouter(dependencies) {
       const context = { ...dependencies, requestId: id, event, headers };
       if (routeConfig.json) context.body = parseBody(event, headers, dependencies.config.maxBodyBytes);
       if (routeConfig.auth) context.auth = authenticate(headers, dependencies.config, routeConfig.auth);
+      const clientVersion = Math.max(0, Math.floor(Number(headers['x-client-version']) || 0));
+      if (routeConfig.legacy && clientVersion < (dependencies.config.minClientVersion || 2)) {
+        const payload = routeConfig.legacy === 'list'
+          ? { entries: [], currentUser: null, limit: 0, offset: 0, staleClient: true }
+          : { ok: true, skipped: true, staleClient: true };
+        const response = json(200, payload);
+        response.headers = { ...response.headers, ...responseHeaders };
+        return response;
+      }
       const response = await routeConfig.handler(context);
       response.headers = { ...response.headers, ...responseHeaders };
       return response;

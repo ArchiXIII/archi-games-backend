@@ -1,7 +1,7 @@
 'use strict';
 
 const { TypedValues } = require('ydb-sdk');
-const { withSession, rows } = require('../ydb');
+const { withSession, executeCached, rows } = require('../ydb');
 const { numberValue } = require('../values');
 
 class PurchaseEventsRepository {
@@ -10,7 +10,7 @@ class PurchaseEventsRepository {
   }
 
   async pending(gameId, platform, userId) {
-    const result = await withSession(this.config, (session) => session.executeQuery(`
+    const result = await withSession(this.config, (session) => executeCached(session, `
       DECLARE $game_id AS Utf8;
       DECLARE $platform AS Utf8;
       DECLARE $user_id AS Utf8;
@@ -34,7 +34,7 @@ class PurchaseEventsRepository {
   }
 
   async ack(gameId, platform, userId, eventId) {
-    await withSession(this.config, (session) => session.executeQuery(`
+    await withSession(this.config, (session) => executeCached(session, `
       DECLARE $game_id AS Utf8;
       DECLARE $platform AS Utf8;
       DECLARE $user_id AS Utf8;

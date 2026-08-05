@@ -49,7 +49,6 @@ function entry(row, rank, currentUserId) {
     rank,
     userId,
     playerName: row.player_name || userId,
-    avatarUrl: row.avatar_url || '',
     score: totalStars,
     totalStars,
     isCurrentUser: userId === currentUserId
@@ -101,7 +100,6 @@ class LeaderboardService {
         totalStars: storedStars,
         playerName: playerName || (cached && cached.playerName) || ''
       });
-      this.listCache.clear();
       return { totalStars: storedStars };
     }).finally(() => {
       this.syncPromises.delete(promiseKey);
@@ -113,22 +111,35 @@ class LeaderboardService {
   async list(gameId, platform, userId, query) {
     const limit = pageValue(query && query.limit, 20, 1, 100);
     const offset = pageValue(query && query.offset, 0, 0, 1000000);
-    const cacheKey = `${gameId}:${platform}:${userId}:${limit}:${offset}`;
+    const cacheKey = `${gameId}:${platform}:${limit}:${offset}`;
     const cached = this.listCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) return cached.value;
-    if (this.listPromises.has(cacheKey)) return this.listPromises.get(cacheKey);
-    const promise = this.repository.list(gameId, platform, userId, limit, offset)
+    if (cached && Date.now() < cached.expiresAt) return this.personalize(cached.entries, userId, limit, offset);
+    if (this.listPromises.has(cacheKey)) {
+      return this.listPromises.get(cacheKey)
+        .then((entries) => this.personalize(entries, userId, limit, offset));
+    }
+    const promise = this.repository.list(gameId, platform, limit, offset)
       .then((result) => {
-        const entries = result.entries.map((row, index) => entry(row, offset + index + 1, userId));
-        const currentUser = result.current ? entry(result.current, result.rank, userId) : null;
-        const value = { entries, currentUser, limit, offset };
-        this.setCache(this.listCache, cacheKey, { value, expiresAt: Date.now() + 60000 });
-        return value;
+        this.setCache(this.listCache, cacheKey, {
+          entries: result.entries,
+          expiresAt: Date.now() + 6 * 60 * 60 * 1000
+        });
+        return result.entries;
       }).finally(() => {
         this.listPromises.delete(cacheKey);
       });
     this.listPromises.set(cacheKey, promise);
-    return promise;
+    return promise.then((entries) => this.personalize(entries, userId, limit, offset));
+  }
+
+  personalize(rows, userId, limit, offset) {
+    const entries = rows.map((row, index) => entry(row, offset + index + 1, userId));
+    return {
+      entries,
+      currentUser: entries.find((item) => item.isCurrentUser) || null,
+      limit,
+      offset
+    };
   }
 }
 

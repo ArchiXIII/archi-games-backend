@@ -16,7 +16,8 @@ function authHeaders(contentType) {
   params.set('sign', createSignature(params, 'secret'));
   return {
     ...(contentType ? { 'content-type': contentType } : {}),
-    'x-vk-launch-params': params.toString()
+    'x-vk-launch-params': params.toString(),
+    'x-client-version': '2'
   };
 }
 
@@ -32,7 +33,8 @@ function okAuthHeaders(contentType) {
   params.set('sign', createSignature(params, 'ok-secret'));
   return {
     ...(contentType ? { 'content-type': contentType } : {}),
-    'x-vk-launch-params': params.toString()
+    'x-vk-launch-params': params.toString(),
+    'x-client-version': '2'
   };
 }
 
@@ -135,6 +137,21 @@ test('client routes require signed VK launch params', async () => {
   assert.equal(response.statusCode, 401);
   assert.equal(queryFallback.statusCode, 401);
   assert.equal(JSON.parse(response.body).error.code, 'UNAUTHORIZED');
+});
+
+test('legacy leaderboard clients are answered without service access', async () => {
+  const route = router({ minClientVersion: 2 });
+  const headers = authHeaders();
+  delete headers['x-client-version'];
+  const response = await route({
+    httpMethod: 'GET',
+    path: '/v1/leaderboards/stars',
+    headers
+  });
+  const body = JSON.parse(response.body);
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.staleClient, true);
+  assert.deepEqual(body.entries, []);
 });
 
 test('stars and purchase event routes use VK identity', async () => {
