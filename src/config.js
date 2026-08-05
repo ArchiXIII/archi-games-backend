@@ -2,10 +2,10 @@
 
 const PRODUCTS = Object.freeze({
   'crystal-match': Object.freeze({
-    coins_10000: Object.freeze({ coins: 10000, vkVotes: 5, okAmount: 5, title: '10 000 монет' }),
-    coins_25000: Object.freeze({ coins: 25000, vkVotes: 10, okAmount: 10, title: '25 000 монет' }),
-    coins_60000: Object.freeze({ coins: 60000, vkVotes: 20, okAmount: 20, title: '60 000 монет' }),
-    coins_150000: Object.freeze({ coins: 150000, vkVotes: 45, okAmount: 45, title: '150 000 монет' })
+    coins_10000: Object.freeze({ coins: 10000, vkVotes: 5, okAmount: 19, title: '10 000 монет' }),
+    coins_25000: Object.freeze({ coins: 25000, vkVotes: 10, okAmount: 49, title: '25 000 монет' }),
+    coins_60000: Object.freeze({ coins: 60000, vkVotes: 20, okAmount: 99, title: '60 000 монет' }),
+    coins_150000: Object.freeze({ coins: 150000, vkVotes: 45, okAmount: 199, title: '150 000 монет' })
   })
 });
 

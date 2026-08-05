@@ -17,7 +17,7 @@ function callback(overrides = {}) {
   const params = {
     transaction_id: '632264039936',
     uid: '1234567890',
-    amount: '5',
+    amount: '19',
     method: 'callbacks.payment',
     transaction_time: '2026-07-30 12:34:56',
     product_code: 'coins_10000',
