@@ -40,6 +40,7 @@
 - миграции YDB без удаления существующих данных;
 - минимальная production ZIP-сборка для Cloud Functions;
 - OpenAPI для текущего API Gateway.
+- CORS API Gateway разрешает `X-VK-Launch-Params` и `X-Client-Version` для VK/OK-клиента.
 
 ## Маршруты
 
