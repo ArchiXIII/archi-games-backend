@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: Archi Games API
-  version: 1.5.0
+  version: 1.6.0
 servers:
   - url: https://d5dl7q0eh16ojp505u1v.6brbn2wz.apigw.yandexcloud.net
 x-yc-apigateway:
@@ -104,6 +104,51 @@ components:
         playerName:
           type: string
           maxLength: 512
+    JorOkEndlessLeaderboardEntry:
+      type: object
+      required: [rank, userId, playerName, score, bestScore, isCurrentUser]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+        userId:
+          type: string
+        playerName:
+          type: string
+        score:
+          type: integer
+          format: int64
+          minimum: 0
+        bestScore:
+          type: integer
+          format: int64
+          minimum: 0
+        isCurrentUser:
+          type: boolean
+    JorOkEndlessLeaderboardResponse:
+      type: object
+      required: [entries, currentUser, bestScore, limit, offset]
+      properties:
+        entries:
+          type: array
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/JorOkEndlessLeaderboardEntry"
+        currentUser:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/JorOkEndlessLeaderboardEntry"
+        bestScore:
+          type: integer
+          format: int64
+          minimum: 0
+        limit:
+          type: integer
+          enum: [10]
+        offset:
+          type: integer
+          enum: [0]
     EndlessLeaderboardEntry:
       type: object
       required: [rank, userId, playerName, score, bestScore, updatedAt, isCurrentUser]
@@ -321,6 +366,30 @@ paths:
           description: VK API request failed
         "503":
           description: VK API is not configured
+  /v1/vk/jor/endless-score:
+    post:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EndlessScoreRequest"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Jor endless score submitted to VK
+        "400":
+          description: Invalid score
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          description: VK API request failed
+        "503":
+          description: Jor VK API is not configured
   /v1/vk/payments/callback:
     post:
       x-yc-apigateway-integration:
@@ -361,6 +430,30 @@ paths:
           description: Invalid score or player name
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /v1/ok/jor/endless-score:
+    post:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OkEndlessScoreRequest"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Jor OK endless top 10 synchronized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JorOkEndlessLeaderboardResponse"
+        "400":
+          description: Invalid score or player name
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /v1/ok/leaderboards/endless:
     get:
       parameters:
@@ -389,6 +482,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EndlessLeaderboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/ok/jor/leaderboards/endless:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Jor OK endless top 10 and current player when present
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JorOkEndlessLeaderboardResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
   /v1/ok/payments/callback:

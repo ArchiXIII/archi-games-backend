@@ -93,6 +93,19 @@ function router(overrides = {}) {
       async list() {
         return { entries: [], currentUser: null, limit: 20, offset: 0 };
       }
+    },
+    jorOkEndlessService: {
+      async sync() {
+        return { entries: [], currentUser: null, bestScore: 10, limit: 10, offset: 0 };
+      },
+      async list() {
+        return { entries: [], currentUser: null, bestScore: 0, limit: 10, offset: 0 };
+      }
+    },
+    jorVkApiService: {
+      async submitEndlessScore() {
+        return true;
+      }
     }
   });
 }
@@ -369,6 +382,51 @@ test('OK endless routes reject ordinary VK credentials', async () => {
   });
   assert.equal(submit.statusCode, 401);
   assert.equal(list.statusCode, 401);
+});
+
+test('Jor leaderboard routes are isolated and use Jor credentials', async () => {
+  const config = {
+    jorVkAppId: '42',
+    jorVkAppSecret: 'secret',
+    jorOkVkAppId: '99',
+    jorOkAppId: '84',
+    jorOkAppSecret: 'ok-secret'
+  };
+  const route = router(config);
+  const vk = await route({
+    httpMethod: 'POST',
+    path: '/v1/vk/jor/endless-score',
+    headers: authHeaders('application/json'),
+    body: JSON.stringify({ score: 10 })
+  });
+  const okSubmit = await route({
+    httpMethod: 'POST',
+    path: '/v1/ok/jor/endless-score',
+    headers: okAuthHeaders('application/json'),
+    body: JSON.stringify({ score: 10, playerName: 'Player' })
+  });
+  const okList = await route({
+    httpMethod: 'GET',
+    path: '/v1/ok/jor/leaderboards/endless',
+    headers: okAuthHeaders()
+  });
+  assert.equal(vk.statusCode, 200);
+  assert.equal(okSubmit.statusCode, 200);
+  assert.equal(okList.statusCode, 200);
+
+  const oldVk = await route({
+    httpMethod: 'POST',
+    path: '/v1/vk/endless-score',
+    headers: authHeaders('application/json'),
+    body: JSON.stringify({ score: 10 })
+  });
+  const oldOk = await route({
+    httpMethod: 'GET',
+    path: '/v1/ok/leaderboards/endless',
+    headers: okAuthHeaders()
+  });
+  assert.equal(oldVk.statusCode, 200);
+  assert.equal(oldOk.statusCode, 200);
 });
 
 test('OK payment callback returns the official JSON success response', async () => {

@@ -15,6 +15,11 @@ const {
   okEndlessScoreRoute,
   okEndlessLeaderboardRoute
 } = require('./routes/okEndlessLeaderboard');
+const {
+  jorVkEndlessScoreRoute,
+  jorOkEndlessScoreRoute,
+  jorOkEndlessLeaderboardRoute
+} = require('./routes/jorEndlessLeaderboard');
 
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
@@ -26,6 +31,9 @@ const ROUTES = new Map([
   ['POST /v1/vk/payments/callback', { handler: vkPaymentsCallbackRoute }],
   ['POST /v1/ok/endless-score', { handler: okEndlessScoreRoute, auth: 'ok', json: true, legacy: 'write' }],
   ['GET /v1/ok/leaderboards/endless', { handler: okEndlessLeaderboardRoute, auth: 'ok', legacy: 'list' }],
+  ['POST /v1/vk/jor/endless-score', { handler: jorVkEndlessScoreRoute, auth: 'jor-vk', json: true }],
+  ['POST /v1/ok/jor/endless-score', { handler: jorOkEndlessScoreRoute, auth: 'jor-ok', json: true }],
+  ['GET /v1/ok/jor/leaderboards/endless', { handler: jorOkEndlessLeaderboardRoute, auth: 'jor-ok' }],
   ['GET /v1/ok/payments/callback', { handler: okPaymentsCallbackRoute }]
 ]);
 
@@ -70,6 +78,20 @@ function parseBody(event, headers, maxBytes) {
 function authenticate(headers, config, platform) {
   const raw = headers['x-vk-launch-params'] || '';
   const okClient = isOkLaunchParams(raw);
+  if (platform === 'jor-vk') {
+    if (okClient) throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
+    const auth = verifyVkLaunchParams(raw, config.jorVkAppSecret, config.jorVkAppId);
+    return { ...auth, platform: 'vk' };
+  }
+  if (platform === 'jor-ok') {
+    if (!okClient) throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
+    return verifyOkLaunchParams(
+      raw,
+      config.jorOkAppSecret,
+      config.jorOkVkAppId,
+      config.jorOkAppId
+    );
+  }
   if (platform === 'vk') {
     if (okClient) throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
     const auth = verifyVkLaunchParams(raw, config.vkAppSecret, config.vkAppId);

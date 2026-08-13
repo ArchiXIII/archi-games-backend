@@ -1,6 +1,6 @@
 # Archi Games Backend
 
-Production-ready serverless backend для HTML5-игр Archi Games. Текущая конфигурация обслуживает Crystal Match на VK и Одноклассниках через Node.js 22, Yandex Cloud Functions, API Gateway и YDB Serverless.
+Production-ready serverless backend для HTML5-игр Archi Games. Текущая конфигурация обслуживает Crystal Match и изолированный рейтинг Жора на VK и Одноклассниках через Node.js 22, Yandex Cloud Functions, API Gateway и YDB Serverless.
 
 Обычный прогресс и баланс монет backend не хранит. Они остаются в хранилище платформы и localStorage клиента. Backend хранит только итоговые показатели рейтингов, заказы и очередь событий покупок.
 
@@ -17,6 +17,9 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - `POST /v1/vk/payments/callback`
 - `POST /v1/ok/endless-score`
 - `GET /v1/ok/leaderboards/endless?limit=20&offset=0`
+- `POST /v1/vk/jor/endless-score`
+- `POST /v1/ok/jor/endless-score`
+- `GET /v1/ok/jor/leaderboards/endless`
 - `GET /v1/ok/payments/callback`
 
 Все клиентские маршруты принимают исходную подписанную строку в заголовке `X-VK-Launch-Params`.
@@ -25,6 +28,16 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - Для запуска в Одноклассниках сервер дополнительно требует `vk_client=ok`, проверяет `vk_ok_app_id` и получает пользователя только из `vk_ok_user_id`.
 
 Обычный VK проверяется через `VK_APP_ID` и `VK_APP_SECRET`. Запуск OK проверяется отдельно через `OK_VK_APP_ID`, `OK_APP_SECRET` и `OK_APP_ID`. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются. Callback Direct Games принимает уведомления `get_item` и `order_status_change` для VK и OK.
+
+Маршруты Жора проверяются отдельными `JOR_VK_*` и `JOR_OK_*` параметрами. Они не используют конфигурацию, таблицы и сервисы Crystal Match.
+
+### Рейтинг Жора
+
+VK-рекорд Жора записывается через `POST /v1/vk/jor/endless-score` в нативную таблицу приложения вызовом `secure.addAppEvent`. Backend не хранит строки VK.
+
+OK-рейтинг Жора хранит только десять лучших результатов в отдельной таблице `jor_ok_endless_top`. Меньший результат не уменьшает рекорд. Миграция `007_jor_ok_endless_top.sql` создаёт только эту таблицу и её индекс, не изменяя таблицы существующих игр.
+
+Для Жора используются `JOR_VK_APP_ID`, `JOR_VK_APP_SECRET`, `JOR_VK_SERVICE_TOKEN`, `JOR_OK_VK_APP_ID`, `JOR_OK_APP_ID` и `JOR_OK_APP_SECRET`.
 
 ### Рейтинги
 

@@ -31,3 +31,19 @@ test('migration 003 creates a platform-separated endless leaderboard', () => {
   assert.match(source, /PRIMARY KEY \(game_id, platform, platform_user_id\)/);
   assert.match(source, /INDEX idx_endless_score GLOBAL/);
 });
+
+test('Jor OK leaderboard uses a separate top-ten table', () => {
+  const migration = fs.readFileSync(
+    path.join(__dirname, '..', 'migrations', '007_jor_ok_endless_top.sql'),
+    'utf8'
+  );
+  const repository = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'db', 'repositories', 'jorOkEndlessRepository.js'),
+    'utf8'
+  );
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS jor_ok_endless_top/);
+  assert.match(migration, /PRIMARY KEY \(platform_user_id\)/);
+  assert.match(repository, /LIMIT 1000 OFFSET 10/);
+  assert.match(repository, /best_score = MAX_OF\(best_score, \$best_score\)/);
+  assert.doesNotMatch(repository, /endless_leaderboard\s/);
+});
