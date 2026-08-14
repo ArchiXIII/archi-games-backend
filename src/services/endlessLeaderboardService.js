@@ -20,11 +20,30 @@ function entry(row, rank, currentUserId) {
 class EndlessLeaderboardService {
   constructor(repository) {
     this.repository = repository;
-    this.syncCache = new Map();
     this.listCache = new Map();
     this.syncPromises = new Map();
     this.listPromises = new Map();
     this.cacheLimit = 512;
+  }
+
+  qualifies(rows, userId, bestScore, playerName) {
+    const current = rows.find((row) => String(row.platform_user_id) === userId);
+    if (current) {
+      return bestScore > numberValue(current.best_score) ||
+        (!!playerName && playerName !== String(current.player_name || ''));
+    }
+    if (rows.length < 10) return true;
+    const last = rows[9];
+    const lastScore = numberValue(last.best_score);
+    return bestScore > lastScore ||
+      (bestScore === lastScore && userId < String(last.platform_user_id));
+  }
+
+  invalidateListCache(gameId, platform) {
+    const prefix = `${gameId}:${platform}:`;
+    for (const key of this.listCache.keys()) {
+      if (key.startsWith(prefix)) this.listCache.delete(key);
+    }
   }
 
   setCache(cache, key, value) {
@@ -41,27 +60,42 @@ class EndlessLeaderboardService {
     }
     const bestScore = score(body.score);
     const playerName = cleanPlayerName(body.playerName);
-    const cacheKey = `${gameId}:${platform}:${userId}`;
-    const cached = this.syncCache.get(cacheKey);
-    if (cached && cached.bestScore >= bestScore &&
-        (!playerName || cached.playerName === playerName)) {
-      return { bestScore: cached.bestScore };
-    }
-    const promiseKey = `${cacheKey}:${bestScore}:${playerName}`;
+    const promiseKey = `${gameId}:${platform}:${userId}:${bestScore}:${playerName}`;
     if (this.syncPromises.has(promiseKey)) return this.syncPromises.get(promiseKey);
-    const promise = this.repository.sync(gameId, platform, userId, bestScore, playerName)
-      .then((row) => {
-        const storedScore = numberValue(row.best_score);
-        this.setCache(this.syncCache, cacheKey, {
-          bestScore: storedScore,
-          playerName: playerName || (cached && cached.playerName) || ''
-        });
-        return { bestScore: storedScore };
-      }).finally(() => {
+    const promise = this.syncTop(gameId, platform, userId, bestScore, playerName).finally(() => {
         this.syncPromises.delete(promiseKey);
       });
     this.syncPromises.set(promiseKey, promise);
     return promise;
+  }
+
+  async syncTop(gameId, platform, userId, bestScore, playerName) {
+    const before = (await this.repository.list(gameId, platform, 10, 0)).entries;
+    if (!this.qualifies(before, userId, bestScore, playerName)) {
+      return {
+        bestScore,
+        qualified: before.some((row) => String(row.platform_user_id) === userId),
+        ...this.personalize(before, userId, 10, 0)
+      };
+    }
+    await this.repository.sync(gameId, platform, userId, bestScore, playerName);
+    const ranked = (await this.repository.list(gameId, platform, 100, 0)).entries;
+    const overflow = ranked.slice(10);
+    for (const row of overflow) {
+      await this.repository.remove(gameId, platform, String(row.platform_user_id));
+    }
+    const top = ranked.slice(0, 10);
+    this.invalidateListCache(gameId, platform);
+    this.setCache(this.listCache, `${gameId}:${platform}:10:0`, {
+      entries: top,
+      expiresAt: Date.now() + 6 * 60 * 60 * 1000
+    });
+    const current = top.find((row) => String(row.platform_user_id) === userId);
+    return {
+      bestScore: current ? numberValue(current.best_score) : bestScore,
+      qualified: !!current,
+      ...this.personalize(top, userId, 10, 0)
+    };
   }
 
   async list(gameId, platform, userId, query) {

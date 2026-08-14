@@ -19,6 +19,18 @@ test('endless leaderboard uses monotonic score and valid YDB insert source', () 
     /FROM \(VALUES \(1\)\) AS seed\(dummy\)\s+WHERE NOT EXISTS \(/
   );
   assert.match(source, /WHERE game_id = \$game_id AND platform = \$platform/);
+  assert.match(source, /DELETE FROM endless_leaderboard/);
+  assert.doesNotMatch(source, /VIEW idx_endless_score/);
+});
+
+test('migration 008 keeps ten endless scores per game and platform', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'migrations', '008_keep_endless_top10.sql'),
+    'utf8'
+  );
+  assert.match(source, /PARTITION BY game_id, platform/);
+  assert.match(source, /WHERE position > 10/);
+  assert.match(source, /DROP INDEX idx_endless_score/);
 });
 
 test('migration 003 creates a platform-separated endless leaderboard', () => {
