@@ -91,8 +91,8 @@ function authenticate(headers, config, platform) {
     if (!okClient) throw new HttpError(401, 'UNAUTHORIZED', 'Unauthorized');
     return verifyOkLaunchParams(
       raw,
-      config.jorOkAppSecret,
-      config.jorOkVkAppId,
+      config.jorVkAppSecret,
+      config.jorVkAppId,
       config.jorOkAppId
     );
   }

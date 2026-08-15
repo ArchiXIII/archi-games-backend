@@ -25,10 +25,7 @@ function setup() {
   const service = new JorVkPaymentsService({
     jorVkAppId: '42',
     jorVkAppSecret: 'vk-secret',
-    jorOkVkAppId: '99',
-    jorOkVkAppSecret: 'ok-vk-secret',
-    jorOkAppId: '84',
-    jorOkAppSecret: 'ok-secret'
+    jorOkAppId: '84'
   }, products, {
     async grant(value) {
       calls.push(['grant', value]);
@@ -43,8 +40,7 @@ function setup() {
 test('Jor callback returns platform-specific trusted prices', async () => {
   const { service } = setup();
   assert.equal((await service.process(signed())).price, 5);
-  assert.equal((await service.process(signed({ app_id: '84' }, 'ok-secret'))).price, 19);
-  assert.equal((await service.process(signed({ app_id: '99' }, 'ok-vk-secret'))).price, 19);
+  assert.equal((await service.process(signed({ app_id: '84' }, 'vk-secret'))).price, 19);
 });
 
 test('Jor callback grants OK orders through the linked application', async () => {
@@ -56,7 +52,7 @@ test('Jor callback grants OK orders through the linked application', async () =>
     item: 'item__ru',
     item_price: '19',
     status: 'chargeable'
-  }, 'ok-secret'));
+  }, 'vk-secret'));
   assert.equal(calls[0][1].platform, 'ok');
   assert.equal(calls[0][1].productId, 'item');
 });

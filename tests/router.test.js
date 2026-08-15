@@ -38,6 +38,23 @@ function okAuthHeaders(contentType) {
   };
 }
 
+function jorOkAuthHeaders(contentType) {
+  const params = new URLSearchParams({
+    vk_client: 'ok',
+    vk_app_id: '42',
+    vk_ok_app_id: '84',
+    vk_ok_user_id: '456',
+    vk_user_id: '123',
+    vk_ts: '1753878896'
+  });
+  params.set('sign', createSignature(params, 'secret'));
+  return {
+    ...(contentType ? { 'content-type': contentType } : {}),
+    'x-vk-launch-params': params.toString(),
+    'x-client-version': '3'
+  };
+}
+
 function router(overrides = {}) {
   const config = {
     ...loadConfig({ NODE_ENV: 'test', ALLOWED_ORIGINS: 'https://game.example' }),
@@ -398,9 +415,7 @@ test('Jor leaderboard routes are isolated and use Jor credentials', async () => 
   const config = {
     jorVkAppId: '42',
     jorVkAppSecret: 'secret',
-    jorOkVkAppId: '99',
-    jorOkAppId: '84',
-    jorOkAppSecret: 'ok-secret'
+    jorOkAppId: '84'
   };
   const route = router(config);
   const vk = await route({
@@ -412,13 +427,13 @@ test('Jor leaderboard routes are isolated and use Jor credentials', async () => 
   const okSubmit = await route({
     httpMethod: 'POST',
     path: '/v1/ok/jor/endless-score',
-    headers: okAuthHeaders('application/json'),
+    headers: jorOkAuthHeaders('application/json'),
     body: JSON.stringify({ score: 10, playerName: 'Player' })
   });
   const okList = await route({
     httpMethod: 'GET',
     path: '/v1/ok/jor/leaderboards/endless',
-    headers: okAuthHeaders()
+    headers: jorOkAuthHeaders()
   });
   assert.equal(vk.statusCode, 200);
   assert.equal(okSubmit.statusCode, 200);
@@ -443,12 +458,10 @@ test('Jor purchase routes use isolated identities and callback', async () => {
   const route = router({
     jorVkAppId: '42',
     jorVkAppSecret: 'secret',
-    jorOkVkAppId: '99',
-    jorOkAppId: '84',
-    jorOkAppSecret: 'ok-secret'
+    jorOkAppId: '84'
   });
   const vk = await route({ httpMethod: 'GET', path: '/v1/vk/jor/purchases', headers: authHeaders() });
-  const ok = await route({ httpMethod: 'GET', path: '/v1/ok/jor/purchases', headers: okAuthHeaders() });
+  const ok = await route({ httpMethod: 'GET', path: '/v1/ok/jor/purchases', headers: jorOkAuthHeaders() });
   const callback = await route({
     httpMethod: 'POST',
     path: '/v1/vk/jor/payments/callback',
