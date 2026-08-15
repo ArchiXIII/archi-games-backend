@@ -37,6 +37,7 @@ function loadConfig(env = process.env) {
     okAppKey: env.OK_APP_KEY || '',
     okAppSecret: env.OK_APP_SECRET || '',
     jorOkAppId: env.JOR_OK_APP_ID || '',
+    jorOkAppKey: env.JOR_OK_APP_KEY || '',
     allowedOrigins: splitOrigins(env.ALLOWED_ORIGINS),
     nodeEnv: env.NODE_ENV || 'development',
     maxBodyBytes: 64 * 1024,

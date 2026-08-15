@@ -20,7 +20,7 @@ const {
   jorOkEndlessScoreRoute,
   jorOkEndlessLeaderboardRoute
 } = require('./routes/jorEndlessLeaderboard');
-const { jorPurchasesRoute, jorVkPaymentsCallbackRoute } = require('./routes/jorPurchases');
+const { jorPurchasesRoute, jorVkPaymentsCallbackRoute, jorOkPaymentsCallbackRoute } = require('./routes/jorPurchases');
 
 const ROUTES = new Map([
   ['GET /health', { handler: healthRoute }],
@@ -38,6 +38,7 @@ const ROUTES = new Map([
   ['GET /v1/vk/jor/purchases', { handler: jorPurchasesRoute, auth: 'jor-vk' }],
   ['GET /v1/ok/jor/purchases', { handler: jorPurchasesRoute, auth: 'jor-ok' }],
   ['POST /v1/vk/jor/payments/callback', { handler: jorVkPaymentsCallbackRoute }],
+  ['GET /v1/ok/jor/payments/callback', { handler: jorOkPaymentsCallbackRoute }],
   ['GET /v1/ok/payments/callback', { handler: okPaymentsCallbackRoute }]
 ]);
 

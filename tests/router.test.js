@@ -473,6 +473,25 @@ test('Jor purchase routes use isolated identities and callback', async () => {
   assert.equal(JSON.parse(callback.body).response.item_id, 'item');
 });
 
+test('Jor OK payment callback uses its isolated route', async () => {
+  let received;
+  const route = createRouter({
+    config: loadConfig({ NODE_ENV: 'test' }),
+    jorOkPaymentsService: {
+      async process(params) {
+        received = params;
+      }
+    }
+  });
+  const response = await route({
+    httpMethod: 'GET',
+    path: '/v1/ok/jor/payments/callback',
+    queryStringParameters: { product_code: 'item' }
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(received.product_code, 'item');
+});
+
 test('OK payment callback returns the official JSON success response', async () => {
   let received;
   const route = createRouter({

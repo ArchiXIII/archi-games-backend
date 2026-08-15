@@ -410,6 +410,14 @@ paths:
       responses:
         "200":
           description: Jor Direct Games payment callback response
+  /v1/ok/jor/payments/callback:
+    get:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Jor OK payment callback response
   /v1/vk/payments/callback:
     post:
       x-yc-apigateway-integration:
