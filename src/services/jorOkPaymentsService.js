@@ -35,12 +35,17 @@ class JorOkPaymentsService {
       throw callbackError(CALLBACK_SIGNATURE_ERROR, 'signature');
     }
     const amount = /^\d+$/.test(String(source.amount || '')) ? Number(source.amount) : NaN;
-    const product = this.products[source.product_code];
+    const callbackProductId = String(source.product_code || '');
+    const localizedProduct = callbackProductId.match(/^(.*)__(ru|en)$/);
+    const productId = localizedProduct ? localizedProduct[1] : callbackProductId;
+    const product = this.products[productId];
     if (source.method !== 'callbacks.payment') throw callbackError(CALLBACK_INVALID_PAYMENT, 'method');
     if (source.application_key !== this.config.jorOkAppKey) throw callbackError(CALLBACK_INVALID_PAYMENT, 'application_key');
     if (!ID_PATTERN.test(source.transaction_id || '')) throw callbackError(CALLBACK_INVALID_PAYMENT, 'transaction_id');
     if (!/^\d{1,20}$/.test(source.uid || '')) throw callbackError(CALLBACK_INVALID_PAYMENT, 'uid');
-    if (!ID_PATTERN.test(source.product_code || '') || !product) throw callbackError(CALLBACK_INVALID_PAYMENT, 'product_code');
+    if (!ID_PATTERN.test(callbackProductId) || !ID_PATTERN.test(productId) || !product) {
+      throw callbackError(CALLBACK_INVALID_PAYMENT, 'product_code');
+    }
     if (!TIME_PATTERN.test(source.transaction_time || '')) throw callbackError(CALLBACK_INVALID_PAYMENT, 'transaction_time');
     if (!Number.isSafeInteger(amount) || amount !== product.okAmount) throw callbackError(CALLBACK_INVALID_PAYMENT, 'amount');
     if (source.currency && source.currency !== 'ok') throw callbackError(CALLBACK_INVALID_PAYMENT, 'currency');
@@ -48,7 +53,7 @@ class JorOkPaymentsService {
       platform: 'ok',
       orderId: source.transaction_id,
       userId: source.uid,
-      productId: source.product_code
+      productId
     });
   }
 }

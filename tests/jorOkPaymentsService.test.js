@@ -44,3 +44,18 @@ test('Jor OK callback validates and grants a catalog purchase', async () => {
     await assert.rejects(service.process(input), OkCallbackError);
   }
 });
+
+test('Jor OK callback grants a localized catalog purchase by its base product id', async () => {
+  const grants = [];
+  const service = new JorOkPaymentsService({
+    jorOkAppKey: 'public-key',
+    jorVkAppSecret: 'secret'
+  }, products, {
+    async grant(value) {
+      grants.push(value);
+      return { created: true };
+    }
+  });
+  assert.deepEqual(await service.process(callback({ product_code: 'item__ru' })), { created: true });
+  assert.equal(grants[0].productId, 'item');
+});
