@@ -26,6 +26,7 @@ function setup() {
     jorVkAppId: '42',
     jorVkAppSecret: 'vk-secret',
     jorOkVkAppId: '99',
+    jorOkVkAppSecret: 'ok-vk-secret',
     jorOkAppId: '84',
     jorOkAppSecret: 'ok-secret'
   }, products, {
@@ -43,6 +44,7 @@ test('Jor callback returns platform-specific trusted prices', async () => {
   const { service } = setup();
   assert.equal((await service.process(signed())).price, 5);
   assert.equal((await service.process(signed({ app_id: '84' }, 'ok-secret'))).price, 19);
+  assert.equal((await service.process(signed({ app_id: '99' }, 'ok-vk-secret'))).price, 19);
 });
 
 test('Jor callback grants OK orders through the linked application', async () => {

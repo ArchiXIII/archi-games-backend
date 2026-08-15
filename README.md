@@ -40,7 +40,7 @@ VK-рекорд Жора записывается через `POST /v1/vk/jor/en
 
 OK-рейтинг Жора хранит только десять лучших результатов в отдельной таблице `jor_ok_endless_top`. Меньший результат не уменьшает рекорд. Миграция `007_jor_ok_endless_top.sql` создаёт только эту таблицу и её индекс, не изменяя таблицы существующих игр.
 
-Для Жора используются `JOR_VK_APP_ID`, `JOR_VK_APP_SECRET`, `JOR_VK_SERVICE_TOKEN`, `JOR_OK_VK_APP_ID`, `JOR_OK_APP_ID` и `JOR_OK_APP_SECRET`.
+Для Жора используются `JOR_VK_APP_ID`, `JOR_VK_APP_SECRET`, `JOR_VK_SERVICE_TOKEN`, `JOR_OK_VK_APP_ID`, `JOR_OK_VK_APP_SECRET`, `JOR_OK_APP_ID` и `JOR_OK_APP_SECRET`.
 
 ### Покупки Жора
 
@@ -141,6 +141,7 @@ Backend хранит лучший результат одного бесконе
 | `OK_APP_ID` | ожидаемый `vk_ok_app_id` в подписанных launch params |
 | `OK_APP_KEY` | публичный ключ приложения Одноклассников для проверки callback |
 | `OK_APP_SECRET` | секрет для проверки `sign` запуска OK и MD5-подписи callback |
+| `JOR_OK_VK_APP_SECRET` | защищённый ключ VK-приложения, связанного с приложением Жора в OK |
 | `GAME_ID` | внутренний ID игры, по умолчанию `crystal-match` |
 | `ALLOWED_ORIGINS` | разрешённые origin через запятую |
 | `NODE_ENV` | `production` |

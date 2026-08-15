@@ -38,8 +38,11 @@ class JorVkPaymentsService {
     if (appId && appId === this.config.jorVkAppId) {
       return { name: 'vk', secret: this.config.jorVkAppSecret };
     }
-    if (appId && (appId === this.config.jorOkAppId || appId === this.config.jorOkVkAppId)) {
-      return { name: 'ok', secret: this.config.jorOkAppSecret };
+    if (appId && appId === this.config.jorOkAppId) {
+      return { name: 'ok', secret: this.config.jorOkAppSecret || this.config.jorOkVkAppSecret };
+    }
+    if (appId && appId === this.config.jorOkVkAppId) {
+      return { name: 'ok', secret: this.config.jorOkVkAppSecret || this.config.jorOkAppSecret };
     }
     throw callbackError(100, 'Invalid application');
   }
