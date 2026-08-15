@@ -532,14 +532,6 @@ paths:
           description: Confirmed Jor purchases for the current OK player
         "401":
           $ref: "#/components/responses/Unauthorized"
-  /v1/ok/jor/payments/callback:
-    get:
-      x-yc-apigateway-integration:
-        type: cloud_functions
-        function_id: d4eb6i2ivnhumclg3ti9
-      responses:
-        "200":
-          description: Jor OK payment callback response
   /v1/ok/payments/callback:
     get:
       parameters:

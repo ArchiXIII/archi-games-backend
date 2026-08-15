@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { JorVkPaymentsService, jorCallbackSignature } = require('../src/services/jorVkPaymentsService');
 
 const products = {
-  item: { title: 'Item', vkVotes: 5, okAmount: 19, durationDays: 0 }
+  item: { titleRu: '\u0422\u043e\u0432\u0430\u0440', titleEn: 'Item', vkVotes: 5, okAmount: 19, durationDays: 0 }
 };
 
 function signed(overrides = {}, secret = 'vk-secret') {
@@ -42,7 +42,35 @@ function setup() {
 test('Jor callback returns platform-specific trusted prices', async () => {
   const { service } = setup();
   assert.equal((await service.process(signed())).price, 5);
-  await assert.rejects(service.process(signed({ app_id: '84' }, 'ok-secret')));
+  assert.equal((await service.process(signed({ app_id: '84' }, 'ok-secret'))).price, 19);
+});
+
+test('Jor callback grants OK orders through the linked application', async () => {
+  const { service, calls } = setup();
+  await service.process(signed({
+    notification_type: 'order_status_change',
+    app_id: '84',
+    order_id: '13',
+    item: 'item__ru',
+    item_price: '19',
+    status: 'chargeable'
+  }, 'ok-secret'));
+  assert.equal(calls[0][1].platform, 'ok');
+  assert.equal(calls[0][1].productId, 'item');
+});
+
+test('Jor callback localizes titles and keeps the base product ID', async () => {
+  const { service, calls } = setup();
+  assert.equal((await service.process(signed({ item: 'item__ru' }))).title, '\u0422\u043e\u0432\u0430\u0440');
+  assert.equal((await service.process(signed({ item: 'item__en' }))).title, 'Item');
+  await service.process(signed({
+    notification_type: 'order_status_change',
+    order_id: '12',
+    item: 'item__ru',
+    item_price: '5',
+    status: 'chargeable'
+  }));
+  assert.equal(calls[0][1].productId, 'item');
 });
 
 test('Jor callback grants and refunds only valid orders', async () => {

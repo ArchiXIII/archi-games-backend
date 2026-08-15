@@ -23,7 +23,6 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - `GET /v1/vk/jor/purchases`
 - `GET /v1/ok/jor/purchases`
 - `POST /v1/vk/jor/payments/callback`
-- `GET /v1/ok/jor/payments/callback`
 - `GET /v1/ok/payments/callback`
 
 Все клиентские маршруты принимают исходную подписанную строку в заголовке `X-VK-Launch-Params`.
@@ -41,7 +40,7 @@ VK-рекорд Жора записывается через `POST /v1/vk/jor/en
 
 OK-рейтинг Жора хранит только десять лучших результатов в отдельной таблице `jor_ok_endless_top`. Меньший результат не уменьшает рекорд. Миграция `007_jor_ok_endless_top.sql` создаёт только эту таблицу и её индекс, не изменяя таблицы существующих игр.
 
-Для Жора используются `JOR_VK_APP_ID`, `JOR_VK_APP_SECRET`, `JOR_VK_SERVICE_TOKEN`, `JOR_OK_VK_APP_ID`, `JOR_OK_APP_ID`, `JOR_OK_APP_KEY` и `JOR_OK_APP_SECRET`.
+Для Жора используются `JOR_VK_APP_ID`, `JOR_VK_APP_SECRET`, `JOR_VK_SERVICE_TOKEN`, `JOR_OK_VK_APP_ID`, `JOR_OK_APP_ID` и `JOR_OK_APP_SECRET`.
 
 ### Покупки Жора
 
@@ -49,7 +48,7 @@ OK-рейтинг Жора хранит только десять лучших �
 
 Клиент читает покупки один раз за сессию при первом открытии магазина. Во время запуска и геймплея запросов покупок нет. После реальной оплаты выполняются три ограниченные проверки подтверждения; постоянного polling и отдельной очереди доставки нет.
 
-Миграция `009_jor_purchases.sql` создаёт таблицу и один индекс пользователя, не изменяя таблицы других игр. VK использует Direct Games callback `/v1/vk/jor/payments/callback`, а OK использует отдельный callback `/v1/ok/jor/payments/callback`.
+Миграция `009_jor_purchases.sql` создаёт таблицу и один индекс пользователя, не изменяя таблицы других игр. VK и связанное приложение OK используют Direct Games callback `/v1/vk/jor/payments/callback`.
 
 ### Рейтинги
 

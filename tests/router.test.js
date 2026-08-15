@@ -116,11 +116,6 @@ function router(overrides = {}) {
       async process(params) {
         return { item_id: params.item, title: 'Item', price: 5 };
       }
-    },
-    jorOkPaymentsService: {
-      async process() {
-        return { created: true };
-      }
     }
   });
 }
@@ -460,15 +455,9 @@ test('Jor purchase routes use isolated identities and callback', async () => {
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: 'notification_type=get_item&item=item'
   });
-  const okCallback = await route({
-    httpMethod: 'GET',
-    path: '/v1/ok/jor/payments/callback',
-    queryStringParameters: { transaction_id: '2' }
-  });
   assert.equal(vk.statusCode, 200);
   assert.equal(ok.statusCode, 200);
   assert.equal(JSON.parse(callback.body).response.item_id, 'item');
-  assert.equal(okCallback.body, 'true');
 });
 
 test('OK payment callback returns the official JSON success response', async () => {

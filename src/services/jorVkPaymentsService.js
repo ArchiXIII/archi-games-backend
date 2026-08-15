@@ -38,6 +38,9 @@ class JorVkPaymentsService {
     if (appId && appId === this.config.jorVkAppId) {
       return { name: 'vk', secret: this.config.jorVkAppSecret };
     }
+    if (appId && (appId === this.config.jorOkAppId || appId === this.config.jorOkVkAppId)) {
+      return { name: 'ok', secret: this.config.jorOkAppSecret };
+    }
     throw callbackError(100, 'Invalid application');
   }
 
@@ -56,14 +59,16 @@ class JorVkPaymentsService {
   }
 
   getProduct(productId) {
-    if (!ID_PATTERN.test(productId || '') || !this.products[productId]) {
+    const match = String(productId || '').match(/^(.*)__(ru|en)$/);
+    const id = match ? match[1] : String(productId || '');
+    if (!ID_PATTERN.test(productId || '') || !ID_PATTERN.test(id) || !this.products[id]) {
       throw callbackError(20, 'Product does not exist');
     }
-    return this.products[productId];
+    return { id, callbackId: String(productId), language: match?.[2] || 'ru', product: this.products[id] };
   }
 
   priceFor(platform, product) {
-    const price = product.vkVotes;
+    const price = platform === 'ok' ? product.okAmount : product.vkVotes;
     if (!Number.isSafeInteger(price) || price < 1) throw callbackError(20, 'Product does not exist');
     return price;
   }
@@ -74,11 +79,15 @@ class JorVkPaymentsService {
     const type = String(source.notification_type || '');
     if (GET_ITEM_TYPES.has(type)) {
       const productId = String(source.item || '');
-      const product = this.getProduct(productId);
+      const resolved = this.getProduct(productId);
       return {
-        item_id: productId,
-        title: String(product.title || productId).slice(0, 48),
-        price: this.priceFor(platform.name, product),
+        item_id: resolved.callbackId,
+        title: String(
+          resolved.language === 'en'
+            ? resolved.product.titleEn
+            : resolved.product.titleRu
+        ).slice(0, 48),
+        price: this.priceFor(platform.name, resolved.product),
         expiration: 600
       };
     }
@@ -88,10 +97,9 @@ class JorVkPaymentsService {
     if (!/^\d{1,20}$/.test(orderId) || !Number.isSafeInteger(numericOrderId)) {
       throw callbackError(100, 'Invalid order');
     }
-    const productId = String(source.item || source.item_id || '');
-    const product = this.getProduct(productId);
+    const resolved = this.getProduct(String(source.item || source.item_id || ''));
     const price = Number(source.item_price);
-    if (!Number.isSafeInteger(price) || price !== this.priceFor(platform.name, product)) {
+    if (!Number.isSafeInteger(price) || price !== this.priceFor(platform.name, resolved.product)) {
       throw callbackError(100, 'Invalid price');
     }
     if (source.status === 'chargeable') {
@@ -99,7 +107,7 @@ class JorVkPaymentsService {
         platform: platform.name,
         orderId,
         userId: String(source.user_id),
-        productId
+        productId: resolved.id
       });
     } else if (source.status === 'refunded') {
       await this.purchasesService.refund(platform.name, orderId);

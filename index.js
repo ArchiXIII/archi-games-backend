@@ -19,7 +19,6 @@ const { EndlessLeaderboardService } = require('./src/services/endlessLeaderboard
 const { JorOkEndlessService } = require('./src/services/jorOkEndlessService');
 const { JorPurchasesService } = require('./src/services/jorPurchasesService');
 const { JorVkPaymentsService } = require('./src/services/jorVkPaymentsService');
-const { JorOkPaymentsService } = require('./src/services/jorOkPaymentsService');
 const { createRouter } = require('./src/router');
 
 const config = loadConfig();
@@ -40,7 +39,6 @@ const endlessLeaderboardService = new EndlessLeaderboardService(endlessLeaderboa
 const jorOkEndlessService = new JorOkEndlessService(jorOkEndlessRepository);
 const jorPurchasesService = new JorPurchasesService(config.jorProducts, jorPurchasesRepository);
 const jorVkPaymentsService = new JorVkPaymentsService(config, config.jorProducts, jorPurchasesService);
-const jorOkPaymentsService = new JorOkPaymentsService(config, config.jorProducts, jorPurchasesService);
 const jorVkApiService = new VkApiService({
   vkServiceToken: config.jorVkServiceToken,
   vkApiVersion: config.vkApiVersion
@@ -60,8 +58,7 @@ const handler = createRouter({
   jorOkEndlessService,
   jorVkApiService,
   jorPurchasesService,
-  jorVkPaymentsService,
-  jorOkPaymentsService
+  jorVkPaymentsService
 });
 
 module.exports = { handler };
