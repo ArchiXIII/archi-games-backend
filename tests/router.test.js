@@ -106,6 +106,21 @@ function router(overrides = {}) {
       async submitEndlessScore() {
         return true;
       }
+    },
+    jorPurchasesService: {
+      async list(platform, userId) {
+        return { purchases: [{ productId: 'item' }], authoritative: true, platform, userId };
+      }
+    },
+    jorVkPaymentsService: {
+      async process(params) {
+        return { item_id: params.item, title: 'Item', price: 5 };
+      }
+    },
+    jorOkPaymentsService: {
+      async process() {
+        return { created: true };
+      }
     }
   });
 }
@@ -427,6 +442,33 @@ test('Jor leaderboard routes are isolated and use Jor credentials', async () => 
   });
   assert.equal(oldVk.statusCode, 200);
   assert.equal(oldOk.statusCode, 200);
+});
+
+test('Jor purchase routes use isolated identities and callback', async () => {
+  const route = router({
+    jorVkAppId: '42',
+    jorVkAppSecret: 'secret',
+    jorOkVkAppId: '99',
+    jorOkAppId: '84',
+    jorOkAppSecret: 'ok-secret'
+  });
+  const vk = await route({ httpMethod: 'GET', path: '/v1/vk/jor/purchases', headers: authHeaders() });
+  const ok = await route({ httpMethod: 'GET', path: '/v1/ok/jor/purchases', headers: okAuthHeaders() });
+  const callback = await route({
+    httpMethod: 'POST',
+    path: '/v1/vk/jor/payments/callback',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: 'notification_type=get_item&item=item'
+  });
+  const okCallback = await route({
+    httpMethod: 'GET',
+    path: '/v1/ok/jor/payments/callback',
+    queryStringParameters: { transaction_id: '2' }
+  });
+  assert.equal(vk.statusCode, 200);
+  assert.equal(ok.statusCode, 200);
+  assert.equal(JSON.parse(callback.body).response.item_id, 'item');
+  assert.equal(okCallback.body, 'true');
 });
 
 test('OK payment callback returns the official JSON success response', async () => {

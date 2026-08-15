@@ -20,6 +20,10 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - `POST /v1/vk/jor/endless-score`
 - `POST /v1/ok/jor/endless-score`
 - `GET /v1/ok/jor/leaderboards/endless`
+- `GET /v1/vk/jor/purchases`
+- `GET /v1/ok/jor/purchases`
+- `POST /v1/vk/jor/payments/callback`
+- `GET /v1/ok/jor/payments/callback`
 - `GET /v1/ok/payments/callback`
 
 Все клиентские маршруты принимают исходную подписанную строку в заголовке `X-VK-Launch-Params`.
@@ -27,7 +31,7 @@ Production-ready serverless backend для HTML5-игр Archi Games. Текущ�
 - Для обычного VK сервер проверяет HMAC, `vk_app_id` и получает пользователя из `vk_user_id`.
 - Для запуска в Одноклассниках сервер дополнительно требует `vk_client=ok`, проверяет `vk_ok_app_id` и получает пользователя только из `vk_ok_user_id`.
 
-Обычный VK проверяется через `VK_APP_ID` и `VK_APP_SECRET`. Запуск OK проверяется отдельно через `OK_VK_APP_ID`, `OK_APP_SECRET` и `OK_APP_ID`. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются. Callback Direct Games принимает уведомления `get_item` и `order_status_change` для VK и OK.
+Обычный VK проверяется через `VK_APP_ID` и `VK_APP_SECRET`. Запуск OK проверяется отдельно через `OK_VK_APP_ID`, `OK_APP_SECRET` и `OK_APP_ID`. Проверенная платформа записывается в ключи YDB, поэтому рейтинги, заказы и события VK и OK не смешиваются.
 
 Маршруты Жора проверяются отдельными `JOR_VK_*` и `JOR_OK_*` параметрами. Они не используют конфигурацию, таблицы и сервисы Crystal Match.
 
@@ -37,7 +41,15 @@ VK-рекорд Жора записывается через `POST /v1/vk/jor/en
 
 OK-рейтинг Жора хранит только десять лучших результатов в отдельной таблице `jor_ok_endless_top`. Меньший результат не уменьшает рекорд. Миграция `007_jor_ok_endless_top.sql` создаёт только эту таблицу и её индекс, не изменяя таблицы существующих игр.
 
-Для Жора используются `JOR_VK_APP_ID`, `JOR_VK_APP_SECRET`, `JOR_VK_SERVICE_TOKEN`, `JOR_OK_VK_APP_ID`, `JOR_OK_APP_ID` и `JOR_OK_APP_SECRET`.
+Для Жора используются `JOR_VK_APP_ID`, `JOR_VK_APP_SECRET`, `JOR_VK_SERVICE_TOKEN`, `JOR_OK_VK_APP_ID`, `JOR_OK_APP_ID`, `JOR_OK_APP_KEY` и `JOR_OK_APP_SECRET`.
+
+### Покупки Жора
+
+Подтверждённые покупки VK и OK хранятся только в отдельной таблице `jor_purchases`. Каталог находится в `src/config/jorProducts.js`; цена, срок действия и товар всегда проверяются backend. Повторный callback одного заказа идемпотентен, возврат отключает соответствующее право.
+
+Клиент читает покупки один раз за сессию при первом открытии магазина. Во время запуска и геймплея запросов покупок нет. После реальной оплаты выполняются три ограниченные проверки подтверждения; постоянного polling и отдельной очереди доставки нет.
+
+Миграция `009_jor_purchases.sql` создаёт таблицу и один индекс пользователя, не изменяя таблицы других игр. VK использует Direct Games callback `/v1/vk/jor/payments/callback`, а OK использует отдельный callback `/v1/ok/jor/payments/callback`.
 
 ### Рейтинги
 
@@ -183,6 +195,8 @@ Backend хранит лучший результат одного бесконе
 `npm run migrate`
 
 Локальный runner пропускает ошибку «already exists» для уже созданных объектов.
+
+Для включения покупок Жора выполните `migrations/009_jor_purchases.sql` один раз через YDB Query Editor перед публикацией нового backend-архива.
 
 ## Production ZIP
 

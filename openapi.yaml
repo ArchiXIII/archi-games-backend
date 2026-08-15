@@ -390,6 +390,26 @@ paths:
           description: VK API request failed
         "503":
           description: Jor VK API is not configured
+  /v1/vk/jor/purchases:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Confirmed Jor purchases for the current VK player
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/vk/jor/payments/callback:
+    post:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Jor Direct Games payment callback response
   /v1/vk/payments/callback:
     post:
       x-yc-apigateway-integration:
@@ -500,6 +520,26 @@ paths:
                 $ref: "#/components/schemas/JorOkEndlessLeaderboardResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /v1/ok/jor/purchases:
+    get:
+      parameters:
+        - $ref: "#/components/parameters/VkLaunchParams"
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Confirmed Jor purchases for the current OK player
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v1/ok/jor/payments/callback:
+    get:
+      x-yc-apigateway-integration:
+        type: cloud_functions
+        function_id: d4eb6i2ivnhumclg3ti9
+      responses:
+        "200":
+          description: Jor OK payment callback response
   /v1/ok/payments/callback:
     get:
       parameters:

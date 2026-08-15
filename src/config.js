@@ -1,5 +1,7 @@
 'use strict';
 
+const { JOR_PRODUCTS } = require('./config/jorProducts');
+
 const PRODUCTS = Object.freeze({
   'crystal-match': Object.freeze({
     coins_10000: Object.freeze({ coins: 10000, vkVotes: 5, okAmount: 19, title: '10 000 монет' }),
@@ -36,13 +38,15 @@ function loadConfig(env = process.env) {
     okAppSecret: env.OK_APP_SECRET || '',
     jorOkVkAppId: env.JOR_OK_VK_APP_ID || '',
     jorOkAppId: env.JOR_OK_APP_ID || '',
+    jorOkAppKey: env.JOR_OK_APP_KEY || '',
     jorOkAppSecret: env.JOR_OK_APP_SECRET || '',
     allowedOrigins: splitOrigins(env.ALLOWED_ORIGINS),
     nodeEnv: env.NODE_ENV || 'development',
     maxBodyBytes: 64 * 1024,
     minClientVersion: Math.max(1, Math.floor(Number(env.MIN_CLIENT_VERSION) || 2)),
-    products: PRODUCTS
+    products: PRODUCTS,
+    jorProducts: JOR_PRODUCTS
   });
 }
 
-module.exports = { loadConfig, PRODUCTS };
+module.exports = { loadConfig, PRODUCTS, JOR_PRODUCTS };
