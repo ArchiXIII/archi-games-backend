@@ -9,7 +9,10 @@ const { JOR_PRODUCTS } = require('../src/config/jorProducts');
 const products = { item: { okAmount: 19, durationDays: 0 } };
 
 test('Jor OK catalog keeps the 30-day banner removal price in sync', () => {
-  assert.equal(JOR_PRODUCTS.jor_no_side_ads_30d.okAmount, 79);
+  const product = JOR_PRODUCTS.jor_no_side_ads_30d;
+  assert.equal(product.okAmount, 79);
+  assert.equal(product.titleRu, '\u0411\u0435\u0437 \u0440\u0435\u043a\u043b\u0430\u043c\u044b \u043f\u043e\u0441\u043b\u0435 \u0440\u0430\u0443\u043d\u0434\u043e\u0432 \u043d\u0430 30 \u0434\u043d\u0435\u0439');
+  assert.equal(product.titleEn, 'No ads after rounds for 30 days');
 });
 
 function callback(overrides = {}) {
