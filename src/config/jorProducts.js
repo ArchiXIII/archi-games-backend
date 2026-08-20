@@ -22,7 +22,7 @@ const PRODUCTS = Object.freeze({
   jor_icon_dark_eye: product('\u0422\u0451\u043c\u043d\u044b\u0439 \u0433\u043b\u0430\u0437 \u0433\u043b\u0443\u0431\u0438\u043d\u044b', 'Deep Eye', 13, 59),
   jor_icon_gold_shell: product('\u0417\u043e\u043b\u043e\u0442\u043e\u0439 \u043f\u0430\u043d\u0446\u0438\u0440\u043d\u0438\u043a', 'Gold Shell', 18, 89),
   jor_icon_ancient_eye: product('\u041b\u0435\u0432\u0438\u0430\u0444\u0430\u043d', 'Leviathan', 23, 119),
-  jor_no_side_ads_30d: product('\u0411\u043e\u043b\u044c\u0448\u0435 \u043c\u0435\u0441\u0442\u0430 \u043d\u0430 30 \u0434\u043d\u0435\u0439', 'More space for 30 days', 10, 49, 30),
+  jor_no_side_ads_30d: product('\u0411\u043e\u043b\u044c\u0448\u0435 \u043c\u0435\u0441\u0442\u0430 \u043d\u0430 30 \u0434\u043d\u0435\u0439', 'More space for 30 days', 10, 79, 30),
   jor_no_reward_ads: product('\u0422\u0440\u0435\u0442\u0438\u0439 \u0432\u044b\u0431\u043e\u0440 \u0431\u0435\u0437 \u0440\u0435\u043a\u043b\u0430\u043c\u044b', 'Ad-free third choice', 45, 239)
 });
 

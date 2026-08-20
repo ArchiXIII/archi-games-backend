@@ -4,8 +4,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createOkCallbackSignature, OkCallbackError } = require('../src/services/okPaymentsService');
 const { JorOkPaymentsService } = require('../src/services/jorOkPaymentsService');
+const { JOR_PRODUCTS } = require('../src/config/jorProducts');
 
 const products = { item: { okAmount: 19, durationDays: 0 } };
+
+test('Jor OK catalog keeps the 30-day banner removal price in sync', () => {
+  assert.equal(JOR_PRODUCTS.jor_no_side_ads_30d.okAmount, 79);
+});
 
 function callback(overrides = {}) {
   const params = {
